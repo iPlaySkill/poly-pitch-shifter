@@ -36,6 +36,14 @@ target_sources(PolyPitchShifter
         Source/PluginEditor.cpp
 )
 
+target_include_directories(PolyPitchShifter
+    PRIVATE
+        Source
+        Source/DSP
+        Source/GUI
+        Source/Utils
+)
+
 target_compile_options(PolyPitchShifter
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
