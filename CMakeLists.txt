@@ -52,3 +52,6 @@ target_link_libraries(PolyPitchShifter
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+enable_testing()
+add_subdirectory(Tests)
