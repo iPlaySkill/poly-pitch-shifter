@@ -34,6 +34,8 @@ target_sources(PolyPitchShifter
         Source/PluginProcessor.cpp
         Source/PluginEditor.h
         Source/PluginEditor.cpp
+        Source/Parameters.h
+        Source/Parameters.cpp
 )
 
 target_include_directories(PolyPitchShifter

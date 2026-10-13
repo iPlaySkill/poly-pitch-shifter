@@ -1,21 +1,17 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-juce::AudioProcessorValueTreeState::ParameterLayout PolyPitchShifterAudioProcessor::createParameterLayout()
-{
-    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-    params.push_back (std::make_unique<juce::AudioParameterBool> (
-        juce::ParameterID { "bypass", 1 }, "Bypass", false));
-    return { params.begin(), params.end() };
-}
-
 PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     : AudioProcessor (BusesProperties()
                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts (*this, nullptr, "Parameters", createParameterLayout())
+      apvts (*this, nullptr, "Parameters", pps::params::createParameterLayout())
 {
-    bypassParam = apvts.getRawParameterValue ("bypass");
+    bypassParam = apvts.getRawParameterValue (pps::params::pidBypass);
+    shiftParam  = apvts.getRawParameterValue (pps::params::pidShift);
+    fineParam   = apvts.getRawParameterValue (pps::params::pidFine);
+    mixParam    = apvts.getRawParameterValue (pps::params::pidMix);
+    gainParam   = apvts.getRawParameterValue (pps::params::pidGain);
 }
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
@@ -70,11 +66,8 @@ void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     const auto totalNumInputChannels  = getTotalNumInputChannels();
     const auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // Clear any extra output channels
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // Pass-through processing stub (signal remains unmodified)
 }
 
 bool PolyPitchShifterAudioProcessor::hasEditor() const { return true; }

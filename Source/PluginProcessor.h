@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "Parameters.h"
 
 class PolyPitchShifterAudioProcessor : public juce::AudioProcessor
 {
@@ -36,17 +37,26 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     bool isBypassed() const noexcept { return bypassParam != nullptr && bypassParam->load() > 0.5f; }
 
+    float getShiftSemitones() const noexcept { return shiftParam ? shiftParam->load() : 0.0f; }
+    float getFineCents() const noexcept { return fineParam ? fineParam->load() : 0.0f; }
+    float getMixPercentage() const noexcept { return mixParam ? mixParam->load() : 100.0f; }
+    float getGainDb() const noexcept { return gainParam ? gainParam->load() : 0.0f; }
+
     double getCurrentSampleRate() const noexcept { return currentSampleRate; }
     int getCurrentBlockSize() const noexcept { return currentBlockSize; }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
+
+    // Atomic raw parameter values for lock-free audio thread reads
     std::atomic<float>* bypassParam = nullptr;
+    std::atomic<float>* shiftParam  = nullptr;
+    std::atomic<float>* fineParam   = nullptr;
+    std::atomic<float>* mixParam    = nullptr;
+    std::atomic<float>* gainParam   = nullptr;
 
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;
-
-    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PolyPitchShifterAudioProcessor)
 };
