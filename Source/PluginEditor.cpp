@@ -28,7 +28,7 @@ void PolyPitchShifterAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect (0, 0, getWidth(), 48);
 
     g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (18.0f).withStyle ("Bold"));
+    g.setFont (juce::Font (18.0f, juce::Font::bold));
     g.drawText ("PolyPitchShifter", 20, 0, 300, 48, juce::Justification::centredLeft);
 }
 

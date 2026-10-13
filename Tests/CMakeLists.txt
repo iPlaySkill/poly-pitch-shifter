@@ -2,6 +2,7 @@ add_executable(PolyPitchShifterTests
     MainTest.cpp
 )
 
+target_include_directories(PolyPitchShifterTests PRIVATE ../Source)
 target_compile_features(PolyPitchShifterTests PRIVATE cxx_std_20)
 
 target_link_libraries(PolyPitchShifterTests
