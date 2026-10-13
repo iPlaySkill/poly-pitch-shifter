@@ -49,7 +49,9 @@ target_include_directories(PolyPitchShifter
 target_compile_options(PolyPitchShifter
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
+        $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2 /fp:fast /Oi /Ot>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+        $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<CONFIG:Release>>:-O3 -ffast-math>
 )
 
 target_link_libraries(PolyPitchShifter
