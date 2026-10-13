@@ -26,6 +26,8 @@ juce_add_plugin(PolyPitchShifter
     PLUGIN_CODE Pps1
     FORMATS VST3
     PRODUCT_NAME "PolyPitchShifter"
+    DESCRIPTION "Real-time Polyphonic Guitar Pitch Shifter"
+    VST3_CATEGORIES "Fx" "Pitch Shift"
 )
 
 target_sources(PolyPitchShifter
