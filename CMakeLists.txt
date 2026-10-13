@@ -27,3 +27,22 @@ juce_add_plugin(PolyPitchShifter
     FORMATS VST3
     PRODUCT_NAME "PolyPitchShifter"
 )
+
+target_sources(PolyPitchShifter
+    PRIVATE
+        Source/PluginProcessor.h
+        Source/PluginProcessor.cpp
+        Source/PluginEditor.h
+        Source/PluginEditor.cpp
+)
+
+target_link_libraries(PolyPitchShifter
+    PRIVATE
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_gui_basics
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags
+)

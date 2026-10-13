@@ -1,0 +1,50 @@
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+
+PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
+    : AudioProcessor (BusesProperties()
+                      .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+{
+}
+
+PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
+{
+}
+
+const juce::String PolyPitchShifterAudioProcessor::getName() const
+{
+    return "PolyPitchShifter";
+}
+
+bool PolyPitchShifterAudioProcessor::acceptsMidi() const { return false; }
+bool PolyPitchShifterAudioProcessor::producesMidi() const { return false; }
+bool PolyPitchShifterAudioProcessor::isMidiEffect() const { return false; }
+double PolyPitchShifterAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+
+int PolyPitchShifterAudioProcessor::getNumPrograms() { return 1; }
+int PolyPitchShifterAudioProcessor::getCurrentProgram() { return 0; }
+void PolyPitchShifterAudioProcessor::setCurrentProgram (int) {}
+const juce::String PolyPitchShifterAudioProcessor::getProgramName (int) { return {}; }
+void PolyPitchShifterAudioProcessor::changeProgramName (int, const juce::String&) {}
+
+void PolyPitchShifterAudioProcessor::prepareToPlay (double, int) {}
+void PolyPitchShifterAudioProcessor::releaseResources() {}
+
+bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported (const BusesLayout&) const { return true; }
+
+void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) {}
+
+bool PolyPitchShifterAudioProcessor::hasEditor() const { return true; }
+juce::AudioProcessorEditor* PolyPitchShifterAudioProcessor::createEditor()
+{
+    return new PolyPitchShifterAudioProcessorEditor (*this);
+}
+
+void PolyPitchShifterAudioProcessor::getStateInformation (juce::MemoryBlock&) {}
+void PolyPitchShifterAudioProcessor::setStateInformation (const void*, int) {}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new PolyPitchShifterAudioProcessor();
+}
