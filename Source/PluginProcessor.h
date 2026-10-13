@@ -2,7 +2,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Parameters.h"
 
-class PolyPitchShifterAudioProcessor : public juce::AudioProcessor
+class PolyPitchShifterAudioProcessor : public juce::AudioProcessor,
+                                       public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     PolyPitchShifterAudioProcessor();
@@ -34,6 +35,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
+
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     bool isBypassed() const noexcept { return bypassParam != nullptr && bypassParam->load() > 0.5f; }
 
@@ -48,7 +51,6 @@ public:
 private:
     juce::AudioProcessorValueTreeState apvts;
 
-    // Atomic raw parameter values for lock-free audio thread reads
     std::atomic<float>* bypassParam = nullptr;
     std::atomic<float>* shiftParam  = nullptr;
     std::atomic<float>* fineParam   = nullptr;

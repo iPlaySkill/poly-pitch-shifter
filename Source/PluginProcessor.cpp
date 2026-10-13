@@ -12,10 +12,26 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     fineParam   = apvts.getRawParameterValue (pps::params::pidFine);
     mixParam    = apvts.getRawParameterValue (pps::params::pidMix);
     gainParam   = apvts.getRawParameterValue (pps::params::pidGain);
+
+    apvts.addParameterListener (pps::params::pidBypass, this);
+    apvts.addParameterListener (pps::params::pidShift, this);
+    apvts.addParameterListener (pps::params::pidFine, this);
+    apvts.addParameterListener (pps::params::pidMix, this);
+    apvts.addParameterListener (pps::params::pidGain, this);
 }
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
 {
+    apvts.removeParameterListener (pps::params::pidBypass, this);
+    apvts.removeParameterListener (pps::params::pidShift, this);
+    apvts.removeParameterListener (pps::params::pidFine, this);
+    apvts.removeParameterListener (pps::params::pidMix, this);
+    apvts.removeParameterListener (pps::params::pidGain, this);
+}
+
+void PolyPitchShifterAudioProcessor::parameterChanged (const juce::String& parameterID, float newValue)
+{
+    juce::ignoreUnused (parameterID, newValue);
 }
 
 const juce::String PolyPitchShifterAudioProcessor::getName() const
