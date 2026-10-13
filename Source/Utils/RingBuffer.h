@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstddef>
 #include <algorithm>
+#include <cstring>
 
 namespace pps
 {
@@ -16,12 +17,64 @@ class RingBuffer
 {
 public:
     RingBuffer() = default;
-    explicit RingBuffer (size_t capacity);
+    explicit RingBuffer (size_t capacity)
+    {
+        resize (capacity);
+    }
 
-    void resize (size_t capacity);
-    void clear() noexcept;
+    void resize (size_t capacity)
+    {
+        bufferSize = capacity;
+        buffer.assign (bufferSize, T {});
+        clear();
+    }
+
+    void clear() noexcept
+    {
+        writeIndex.store (0, std::memory_order_relaxed);
+        readIndex.store (0, std::memory_order_relaxed);
+    }
 
     size_t getCapacity() const noexcept { return bufferSize; }
+
+    size_t getAvailableWrite() const noexcept
+    {
+        const size_t w = writeIndex.load (std::memory_order_relaxed);
+        const size_t r = readIndex.load (std::memory_order_acquire);
+        if (w >= r)
+            return (bufferSize - 1) - (w - r);
+        return r - w - 1;
+    }
+
+    bool write (const T& item) noexcept
+    {
+        if (getAvailableWrite() == 0)
+            return false;
+
+        const size_t w = writeIndex.load (std::memory_order_relaxed);
+        buffer[w] = item;
+        writeIndex.store ((w + 1) % bufferSize, std::memory_order_release);
+        return true;
+    }
+
+    size_t writeBlock (const T* data, size_t numItems) noexcept
+    {
+        const size_t available = getAvailableWrite();
+        const size_t toWrite = std::min (numItems, available);
+        if (toWrite == 0)
+            return 0;
+
+        const size_t w = writeIndex.load (std::memory_order_relaxed);
+        const size_t firstChunk = std::min (toWrite, bufferSize - w);
+        std::copy (data, data + firstChunk, buffer.data() + w);
+
+        const size_t secondChunk = toWrite - firstChunk;
+        if (secondChunk > 0)
+            std::copy (data + firstChunk, data + toWrite, buffer.data());
+
+        writeIndex.store ((w + toWrite) % bufferSize, std::memory_order_release);
+        return toWrite;
+    }
 
 private:
     std::vector<T> buffer;
