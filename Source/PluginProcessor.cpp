@@ -31,7 +31,19 @@ void PolyPitchShifterAudioProcessor::changeProgramName (int, const juce::String&
 void PolyPitchShifterAudioProcessor::prepareToPlay (double, int) {}
 void PolyPitchShifterAudioProcessor::releaseResources() {}
 
-bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported (const BusesLayout&) const { return true; }
+bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+{
+    const auto& mainIn  = layouts.getMainInputChannelSet();
+    const auto& mainOut = layouts.getMainOutputChannelSet();
+
+    if (mainIn != mainOut)
+        return false;
+
+    if (mainIn != juce::AudioChannelSet::mono() && mainIn != juce::AudioChannelSet::stereo())
+        return false;
+
+    return true;
+}
 
 void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) {}
 
