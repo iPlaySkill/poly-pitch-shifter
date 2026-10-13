@@ -46,9 +46,19 @@ double PolyPitchShifterAudioProcessor::getTailLengthSeconds() const { return 0.0
 
 int PolyPitchShifterAudioProcessor::getNumPrograms() { return 1; }
 int PolyPitchShifterAudioProcessor::getCurrentProgram() { return 0; }
-void PolyPitchShifterAudioProcessor::setCurrentProgram (int) {}
-const juce::String PolyPitchShifterAudioProcessor::getProgramName (int) { return {}; }
-void PolyPitchShifterAudioProcessor::changeProgramName (int, const juce::String&) {}
+void PolyPitchShifterAudioProcessor::setCurrentProgram (int index)
+{
+    juce::ignoreUnused (index);
+}
+const juce::String PolyPitchShifterAudioProcessor::getProgramName (int index)
+{
+    juce::ignoreUnused (index);
+    return {};
+}
+void PolyPitchShifterAudioProcessor::changeProgramName (int index, const juce::String& newName)
+{
+    juce::ignoreUnused (index, newName);
+}
 
 void PolyPitchShifterAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
@@ -84,6 +94,9 @@ void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+
+    if (isBypassed())
+        return;
 }
 
 bool PolyPitchShifterAudioProcessor::hasEditor() const { return true; }
@@ -92,8 +105,15 @@ juce::AudioProcessorEditor* PolyPitchShifterAudioProcessor::createEditor()
     return new PolyPitchShifterAudioProcessorEditor (*this);
 }
 
-void PolyPitchShifterAudioProcessor::getStateInformation (juce::MemoryBlock&) {}
-void PolyPitchShifterAudioProcessor::setStateInformation (const void*, int) {}
+void PolyPitchShifterAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+{
+    juce::ignoreUnused (destData);
+}
+
+void PolyPitchShifterAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+{
+    juce::ignoreUnused (data, sizeInBytes);
+}
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
