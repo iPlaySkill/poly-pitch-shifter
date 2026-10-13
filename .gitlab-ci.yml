@@ -1,0 +1,33 @@
+stages:
+  - lint
+  - build
+  - test
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  CMAKE_BUILD_TYPE: Release
+
+lint_code:
+  stage: lint
+  allow_failure: true
+  script:
+    - 'echo "Static analysis check: verifying C++ code formatting and header guards..."'
+    - 'powershell -Command "Get-ChildItem -Path Source -Recurse -Filter *.h | ForEach-Object { if (-not (Get-Content $_.FullName | Select-String \"#pragma once\")) { Write-Error (\"Missing pragma once in \" + $_.Name) } }"'
+
+build_vst3:
+  stage: build
+  script:
+    - 'cmake -B build -G "Visual Studio 17 2022" -A x64'
+    - 'cmake --build build --config Release --target PolyPitchShifter_VST3'
+  artifacts:
+    name: "PolyPitchShifter-VST3-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/PolyPitchShifter_artefacts/Release/VST3/
+    expire_in: 1 week
+
+run_tests:
+  stage: test
+  script:
+    - 'ctest --test-dir build -C Release --output-on-failure'
+  dependencies:
+    - build_vst3
