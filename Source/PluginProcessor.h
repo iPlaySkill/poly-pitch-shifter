@@ -34,9 +34,12 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
+    bool isBypassed() const noexcept { return bypassParam != nullptr && bypassParam->load() > 0.5f; }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<float>* bypassParam = nullptr;
+
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PolyPitchShifterAudioProcessor)

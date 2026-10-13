@@ -4,6 +4,8 @@
 juce::AudioProcessorValueTreeState::ParameterLayout PolyPitchShifterAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+    params.push_back (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { "bypass", 1 }, "Bypass", false));
     return { params.begin(), params.end() };
 }
 
@@ -13,6 +15,7 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
+    bypassParam = apvts.getRawParameterValue ("bypass");
 }
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
