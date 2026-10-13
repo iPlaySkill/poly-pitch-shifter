@@ -14,6 +14,62 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(JUCE)
 
+# Override _juce_add_resources_rc to generate the Windows .rc resource file directly
+# without invoking juceaide, avoiding crashes when project path contains non-ASCII characters or spaces.
+function(_juce_add_resources_rc source_target dest_target)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        return()
+    endif()
+
+    if(NOT TARGET ${source_target}_rc_lib)
+        get_target_property(juce_library_code ${source_target} JUCE_GENERATED_SOURCES_DIRECTORY)
+        set(resource_rc_file "${juce_library_code}/${source_target}_resources.rc")
+
+        set(rc_content
+"#pragma code_page(65001)
+#undef  WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION  1,0,0,0
+PRODUCTVERSION 1,0,0,0
+BEGIN
+  BLOCK \"StringFileInfo\"
+  BEGIN
+    BLOCK \"040904E4\"
+    BEGIN
+      VALUE \"CompanyName\",      \"AudioDSP\\0\"
+      VALUE \"FileDescription\",  \"PolyPitchShifter\\0\"
+      VALUE \"FileVersion\",      \"1.0.0\\0\"
+      VALUE \"ProductName\",      \"PolyPitchShifter\\0\"
+      VALUE \"ProductVersion\",   \"1.0.0\\0\"
+    END
+  END
+  BLOCK \"VarFileInfo\"
+  BEGIN
+    VALUE \"Translation\", 0x409, 1252
+  END
+END
+")
+        file(WRITE "${resource_rc_file}" "${rc_content}")
+
+        add_library(${source_target}_rc_lib OBJECT "${resource_rc_file}")
+
+        set(compile_defs $<TARGET_GENEX_EVAL:${source_target},$<TARGET_PROPERTY:${source_target},COMPILE_DEFINITIONS>>)
+        set(include_dirs $<TARGET_GENEX_EVAL:${source_target},$<TARGET_PROPERTY:${source_target},INCLUDE_DIRECTORIES>>)
+        set(filtered $<FILTER:${compile_defs},INCLUDE,JUCE_USER_DEFINED_RC_FILE=>)
+        set(has_custom_rc_include $<BOOL:${filtered}>)
+
+        target_include_directories(${source_target}_rc_lib
+            PRIVATE $<${has_custom_rc_include}:${include_dirs}>)
+        set_source_files_properties(${resource_rc_file} PROPERTIES
+            COMPILE_DEFINITIONS $<${has_custom_rc_include}:${compile_defs}>)
+    endif()
+
+    target_link_libraries(${dest_target} PRIVATE ${source_target}_rc_lib)
+endfunction()
+
 juce_add_plugin(PolyPitchShifter
     COMPANY_NAME "AudioDSP"
     IS_SYNTH FALSE
@@ -46,6 +102,11 @@ target_include_directories(PolyPitchShifter
         Source/DSP
         Source/GUI
         Source/Utils
+)
+
+target_compile_definitions(PolyPitchShifter
+    PUBLIC
+        JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
 target_compile_options(PolyPitchShifter
