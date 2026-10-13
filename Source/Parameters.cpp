@@ -23,6 +23,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
         juce::ParameterID { pidFine, 1 }, "Fine", fineRange, fineDefault,
         juce::AudioParameterFloatAttributes().withLabel ("ct")));
 
+    // Mix (Dry / Wet %) [0, 100]
+    auto mixRange = juce::NormalisableRange<float> (mixMin, mixMax, 0.5f);
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { pidMix, 1 }, "Mix", mixRange, mixDefault,
+        juce::AudioParameterFloatAttributes().withLabel ("%")));
+
     return { params.begin(), params.end() };
 }
 
