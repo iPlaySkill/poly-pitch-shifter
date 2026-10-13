@@ -17,6 +17,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
         juce::ParameterID { pidShift, 1 }, "Shift", shiftRange, shiftDefault,
         juce::AudioParameterFloatAttributes().withLabel ("st")));
 
+    // Fine Detune in Cents [-50, +50]
+    auto fineRange = juce::NormalisableRange<float> (fineMin, fineMax, 0.1f);
+    params.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { pidFine, 1 }, "Fine", fineRange, fineDefault,
+        juce::AudioParameterFloatAttributes().withLabel ("ct")));
+
     return { params.begin(), params.end() };
 }
 
