@@ -36,9 +36,15 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     bool isBypassed() const noexcept { return bypassParam != nullptr && bypassParam->load() > 0.5f; }
 
+    double getCurrentSampleRate() const noexcept { return currentSampleRate; }
+    int getCurrentBlockSize() const noexcept { return currentBlockSize; }
+
 private:
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<float>* bypassParam = nullptr;
+
+    double currentSampleRate = 44100.0;
+    int currentBlockSize = 512;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

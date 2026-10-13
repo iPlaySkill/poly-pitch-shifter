@@ -38,8 +38,15 @@ void PolyPitchShifterAudioProcessor::setCurrentProgram (int) {}
 const juce::String PolyPitchShifterAudioProcessor::getProgramName (int) { return {}; }
 void PolyPitchShifterAudioProcessor::changeProgramName (int, const juce::String&) {}
 
-void PolyPitchShifterAudioProcessor::prepareToPlay (double, int) {}
-void PolyPitchShifterAudioProcessor::releaseResources() {}
+void PolyPitchShifterAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    currentSampleRate = sampleRate;
+    currentBlockSize  = samplesPerBlock;
+}
+
+void PolyPitchShifterAudioProcessor::releaseResources()
+{
+}
 
 bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
