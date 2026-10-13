@@ -11,6 +11,7 @@ namespace pps
 
 /**
  * Lock-free, real-time safe circular ring buffer for single-producer single-consumer audio streams.
+ * Includes bitwise mask optimization when capacity is a power of two.
  */
 template <typename T>
 class RingBuffer
@@ -25,6 +26,8 @@ public:
     void resize (size_t capacity)
     {
         bufferSize = capacity;
+        mask = bufferSize - 1;
+        isPowerOfTwo = (bufferSize > 0) && ((bufferSize & mask) == 0);
         buffer.assign (bufferSize, T {});
         clear();
     }
@@ -62,7 +65,7 @@ public:
 
         const size_t w = writeIndex.load (std::memory_order_relaxed);
         buffer[w] = item;
-        writeIndex.store ((w + 1) % bufferSize, std::memory_order_release);
+        writeIndex.store (wrap (w + 1), std::memory_order_release);
         return true;
     }
 
@@ -81,7 +84,7 @@ public:
         if (secondChunk > 0)
             std::copy (data + firstChunk, data + toWrite, buffer.data());
 
-        writeIndex.store ((w + toWrite) % bufferSize, std::memory_order_release);
+        writeIndex.store (wrap (w + toWrite), std::memory_order_release);
         return toWrite;
     }
 
@@ -92,7 +95,7 @@ public:
 
         const size_t r = readIndex.load (std::memory_order_relaxed);
         item = buffer[r];
-        readIndex.store ((r + 1) % bufferSize, std::memory_order_release);
+        readIndex.store (wrap (r + 1), std::memory_order_release);
         return true;
     }
 
@@ -111,13 +114,21 @@ public:
         if (secondChunk > 0)
             std::copy (buffer.data(), buffer.data() + secondChunk, destination + firstChunk);
 
-        readIndex.store ((r + toRead) % bufferSize, std::memory_order_release);
+        readIndex.store (wrap (r + toRead), std::memory_order_release);
         return toRead;
     }
 
 private:
+    [[nodiscard]] size_t wrap (size_t index) const noexcept
+    {
+        return isPowerOfTwo ? (index & mask) : (index % bufferSize);
+    }
+
     std::vector<T> buffer;
     size_t bufferSize = 0;
+    size_t mask = 0;
+    bool isPowerOfTwo = false;
+
     std::atomic<size_t> writeIndex { 0 };
     std::atomic<size_t> readIndex  { 0 };
 };
