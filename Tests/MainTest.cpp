@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include "DSP/SmoothedGain.h"
 
 void testSampleRateCompatibility()
 {
@@ -12,7 +13,6 @@ void testSampleRateCompatibility()
     for (double sr : supportedSampleRates)
     {
         assert(sr > 0.0);
-        // Verify Nyquist frequency
         double nyquist = sr * 0.5;
         assert(nyquist >= 20000.0);
     }
@@ -27,11 +27,36 @@ void testBlockSizeSupport()
     for (int bs : supportedBlockSizes)
     {
         assert(bs >= 32 && bs <= 4096);
-        // Verify power of two property
         assert((bs & (bs - 1)) == 0);
     }
 
     std::cout << "  [PASS] Audio block sizes verified (32 to 2048 samples)" << std::endl;
+}
+
+void testSmoothedGainTransitions()
+{
+    pps::SmoothedGain smoother;
+    smoother.reset (44100.0, 0.01); // 10ms ramp
+    smoother.setCurrentAndTarget (0.0f);
+    assert (smoother.getCurrentValue() == 0.0f);
+
+    smoother.setTarget (1.0f);
+    assert (smoother.isSmoothing());
+
+    float prev = 0.0f;
+    // Process 441 samples (10ms)
+    for (int i = 0; i < 441; ++i)
+    {
+        float cur = smoother.getNextValue();
+        assert (cur >= prev); // monotonic increase
+        assert (cur <= 1.0f);
+        prev = cur;
+    }
+
+    // After 10ms, should be very close to target (~63% of step for 1 time constant)
+    assert (smoother.getCurrentValue() > 0.6f);
+
+    std::cout << "  [PASS] SmoothedGain transition monotonicity and convergence" << std::endl;
 }
 
 int main()
@@ -40,6 +65,7 @@ int main()
 
     testSampleRateCompatibility();
     testBlockSizeSupport();
+    testSmoothedGainTransitions();
 
     std::cout << "[PolyPitchShifter Test Suite] All Smoke Tests PASSED." << std::endl;
     return 0;
