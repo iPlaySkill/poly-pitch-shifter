@@ -11,3 +11,12 @@ target_link_libraries(PolyPitchShifterTests
 )
 
 add_test(NAME PolyPitchShifterSanityTest COMMAND PolyPitchShifterTests)
+
+add_executable(RingBufferTests
+    RingBufferTest.cpp
+)
+
+target_include_directories(RingBufferTests PRIVATE ../Source)
+target_compile_features(RingBufferTests PRIVATE cxx_std_20)
+
+add_test(NAME RingBufferTest COMMAND RingBufferTests)
