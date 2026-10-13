@@ -1,10 +1,17 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+juce::AudioProcessorValueTreeState::ParameterLayout PolyPitchShifterAudioProcessor::createParameterLayout()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+    return { params.begin(), params.end() };
+}
+
 PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     : AudioProcessor (BusesProperties()
                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
 }
 
