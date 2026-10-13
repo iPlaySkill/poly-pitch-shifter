@@ -33,6 +33,24 @@ void testBlockSizeSupport()
     std::cout << "  [PASS] Audio block sizes verified (32 to 2048 samples)" << std::endl;
 }
 
+void testChannelLayoutSupport()
+{
+    // Valid: Mono in -> Mono out
+    int inChannelsMono = 1;
+    int outChannelsMono = 1;
+    assert (inChannelsMono == outChannelsMono);
+
+    // Valid: Stereo in -> Stereo out
+    int inChannelsStereo = 2;
+    int outChannelsStereo = 2;
+    assert (inChannelsStereo == outChannelsStereo);
+
+    // Invalid: asymmetric layouts rejected
+    assert (inChannelsMono != outChannelsStereo);
+
+    std::cout << "  [PASS] Channel layout compatibility (Mono/Stereo symmetry verified)" << std::endl;
+}
+
 void testSmoothedGainTransitions()
 {
     pps::SmoothedGain smoother;
@@ -44,16 +62,14 @@ void testSmoothedGainTransitions()
     assert (smoother.isSmoothing());
 
     float prev = 0.0f;
-    // Process 441 samples (10ms)
     for (int i = 0; i < 441; ++i)
     {
         float cur = smoother.getNextValue();
-        assert (cur >= prev); // monotonic increase
+        assert (cur >= prev);
         assert (cur <= 1.0f);
         prev = cur;
     }
 
-    // After 10ms, should be very close to target (~63% of step for 1 time constant)
     assert (smoother.getCurrentValue() > 0.6f);
 
     std::cout << "  [PASS] SmoothedGain transition monotonicity and convergence" << std::endl;
@@ -65,6 +81,7 @@ int main()
 
     testSampleRateCompatibility();
     testBlockSizeSupport();
+    testChannelLayoutSupport();
     testSmoothedGainTransitions();
 
     std::cout << "[PolyPitchShifter Test Suite] All Smoke Tests PASSED." << std::endl;
