@@ -36,6 +36,12 @@ target_sources(PolyPitchShifter
         Source/PluginEditor.cpp
 )
 
+target_compile_options(PolyPitchShifter
+    PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+)
+
 target_link_libraries(PolyPitchShifter
     PRIVATE
         juce::juce_audio_utils
