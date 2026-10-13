@@ -13,10 +13,17 @@ default:
 build_vst3:
   stage: build
   script:
-    - cmake -B build -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
-    - cmake --build build --config $CMAKE_BUILD_TYPE --target PolyPitchShifter_VST3
+    - powershell -Command "cmake -B build -G 'Visual Studio 17 2022' -A x64"
+    - powershell -Command "cmake --build build --config Release --target PolyPitchShifter_VST3"
   artifacts:
     name: "PolyPitchShifter-VST3-$CI_COMMIT_SHORT_SHA"
     paths:
       - build/PolyPitchShifter_artefacts/Release/VST3/
     expire_in: 1 week
+
+run_tests:
+  stage: test
+  script:
+    - powershell -Command "ctest --test-dir build -C Release --output-on-failure"
+  dependencies:
+    - build_vst3
