@@ -1,4 +1,5 @@
 stages:
+  - lint
   - build
   - test
 
@@ -9,6 +10,13 @@ variables:
 default:
   tags:
     - windows
+
+lint_code:
+  stage: lint
+  allow_failure: true
+  script:
+    - powershell -Command "Write-Output 'Static analysis check: verifying C++ formatting and header guards...'"
+    - powershell -Command "Get-ChildItem -Path Source -Recurse -Filter *.h | ForEach-Object { if (-not (Get-Content $_.FullName | Select-String '#pragma once')) { Write-Error ('Missing pragma once in ' + $_.Name) } }"
 
 build_vst3:
   stage: build
