@@ -62,7 +62,20 @@ bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported (const BusesLayout& 
     return true;
 }
 
-void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) {}
+void PolyPitchShifterAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+    juce::ignoreUnused (midiMessages);
+    juce::ScopedNoDenormals noDenormals;
+
+    const auto totalNumInputChannels  = getTotalNumInputChannels();
+    const auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+    // Clear any extra output channels
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear (i, 0, buffer.getNumSamples());
+
+    // Pass-through processing stub (signal remains unmodified)
+}
 
 bool PolyPitchShifterAudioProcessor::hasEditor() const { return true; }
 juce::AudioProcessorEditor* PolyPitchShifterAudioProcessor::createEditor()
