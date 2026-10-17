@@ -21,9 +21,18 @@
 
 ---
 
-### Этап 2: Реализация DSP-ядра WSOLA (В плане)
-- **Целевая ветка:** `feature/dsp-core-wsola`
-- **Задачи:** Алгоритмическое ядро волновой синхронизации по подобию формы волны (WSOLA) во временной области, циклические линии задержки предыстории, быстрый поиск максимума нормированной взаимной корреляции (NCCF), субсэмпловая интерполяция кубическими сплайнами Эрмита, фазово-согласованная стереообработка.
+### Этап 2: Реализация DSP-ядра WSOLA (Завершен)
+- **Ветка:** `feature/dsp-core-wsola`
+- **Количество коммитов:** 22 атомарных коммита
+- **Основные результаты этапа:**
+  - Реализован потоковый 4-точечный кубический сплайн-интерполятор 3-го порядка Эрмита (`HermiteResampler`) с сохранением первой производной для артефакт-свободного субсэмплового ресэмплинга.
+  - Разработан модуль прецизионных оконных функций (`Windowing`) с поддержкой окон Хеннинга, Хэмминга, Блэкмана-Харриса, асимметричных переходов и верификацией свойства unity gain (разбиение единицы при 50% перекрытии).
+  - Спроектирован скоростной алгоритм корреляционного поиска волнового подобия (`CrossCorrelationFinder`) на базе нормированной взаимной корреляции (NCCF) с 3-точечной параболической субсэмпловой интерполяцией пика и SIMD-векторизацией.
+  - Реализован фазово-согласованный стереопоиск (`findBestStereoOffset`), объединяющий корреляцию каналов для предотвращения фазовой деструкции стереобазы.
+  - Разработан циклический буфер предыстории (`AudioHistoryBuffer`) с битовой маской степени двойки для мгновенного извлечения непрерывных сегментов прошлого сигнала.
+  - Разработано ядро волновой синхронизации (`WsolaEngine`) с непрерывным масштабированием времени, интеграцией кубического ресэмплинга Эрмита и экспоненциальным сглаживанием шага высоты тона.
+  - Осуществлена сквозная интеграция DSP-ядра в `PolyPitchShifterAudioProcessor`: потокобезопасная маршрутизация `prepareToPlay` / `processBlock`, компенсация задержки (PDC) плагина, честный Dry/Wet кроссфейд и мастер-усиление с защитой от денормалов.
+  - Создан полный комплект модульных тестов: `HermiteResamplerTest`, `WindowingTest`, `CrossCorrelationFinderTest`, `AudioHistoryBufferTest`, `WsolaEngineTest`.
 
 ---
 
@@ -64,9 +73,18 @@
 
 ---
 
-### Stage 2: WSOLA Core DSP Implementation (Planned)
-- **Target Branch:** `feature/dsp-core-wsola`
-- **Scope:** Time-domain waveform similarity based overlap-add engine, circular audio history delay lines, fast normalized cross-correlation (NCCF) search, Hermite cubic spline fractional resamplers, stereo phase-locked processing.
+### Stage 2: WSOLA Core DSP Implementation (Completed)
+- **Branch:** `feature/dsp-core-wsola`
+- **Commits:** 22 atomic commits
+- **Key Deliverables:**
+  - 4-point 3rd-order Hermite cubic spline fractional resampler (`HermiteResampler`) preserving continuous 1st derivative.
+  - Precalculated windowing utility (`Windowing`) for Hann, Hamming, and Blackman-Harris windows with Partition of Unity verification.
+  - High-performance Normalized Cross-Correlation (NCCF) search engine (`CrossCorrelationFinder`) with parabolic sub-sample peak refinement and SIMD inner products.
+  - Phase-locked stereo correlation search (`findBestStereoOffset`) preserving spatial imaging without inter-channel phase drift.
+  - Lock-free, power-of-two circular lookback memory (`AudioHistoryBuffer`) for past segment extraction.
+  - Core WSOLA overlap-add engine (`WsolaEngine`) coupling time-stretching and fractional resampling for clean polyphonic pitch shifting.
+  - Full end-to-end integration in `PolyPitchShifterAudioProcessor`: zero-heap `processBlock`, smoothed Dry/Wet mixing, master gain scaling, and host PDC reporting.
+  - Algorithmic unit test suite: `HermiteResamplerTest`, `WindowingTest`, `CrossCorrelationFinderTest`, `AudioHistoryBufferTest`, `WsolaEngineTest`.
 
 ---
 
