@@ -17,7 +17,56 @@ add_executable(RingBufferTests
     RingBufferTest.cpp
 )
 
-target_include_directories(RingBufferTests PRIVATE ../Source)
-target_compile_features(RingBufferTests PRIVATE cxx_std_20)
-
 add_test(NAME RingBufferTest COMMAND RingBufferTests)
+
+add_executable(HermiteResamplerTests
+    HermiteResamplerTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+)
+
+target_include_directories(HermiteResamplerTests PRIVATE ../Source)
+target_compile_features(HermiteResamplerTests PRIVATE cxx_std_20)
+
+add_test(NAME HermiteResamplerTest COMMAND HermiteResamplerTests)
+
+add_executable(WindowingTests
+    WindowingTest.cpp
+    ../Source/DSP/Windowing.cpp
+)
+
+target_include_directories(WindowingTests PRIVATE ../Source)
+target_compile_features(WindowingTests PRIVATE cxx_std_20)
+
+add_test(NAME WindowingTest COMMAND WindowingTests)
+
+add_executable(CrossCorrelationFinderTests
+    CrossCorrelationFinderTest.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+)
+
+target_include_directories(CrossCorrelationFinderTests PRIVATE ../Source)
+target_compile_features(CrossCorrelationFinderTests PRIVATE cxx_std_20)
+
+add_test(NAME CrossCorrelationFinderTest COMMAND CrossCorrelationFinderTests)
+
+add_executable(AudioHistoryBufferTests
+    AudioHistoryBufferTest.cpp
+)
+
+target_include_directories(AudioHistoryBufferTests PRIVATE ../Source)
+target_compile_features(AudioHistoryBufferTests PRIVATE cxx_std_20)
+
+add_test(NAME AudioHistoryBufferTest COMMAND AudioHistoryBufferTests)
+
+add_executable(WsolaEngineTests
+    WsolaEngineTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/WsolaEngine.cpp
+)
+
+target_include_directories(WsolaEngineTests PRIVATE ../Source)
+target_compile_features(WsolaEngineTests PRIVATE cxx_std_20)
+
+add_test(NAME WsolaEngineTest COMMAND WsolaEngineTests)
