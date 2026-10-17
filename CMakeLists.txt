@@ -101,6 +101,8 @@ target_sources(PolyPitchShifter
         Source/DSP/CrossCorrelationFinder.h
         Source/DSP/CrossCorrelationFinder.cpp
         Source/DSP/AudioHistoryBuffer.h
+        Source/DSP/WsolaEngine.h
+        Source/DSP/WsolaEngine.cpp
 )
 
 target_include_directories(PolyPitchShifter

@@ -57,3 +57,16 @@ target_include_directories(AudioHistoryBufferTests PRIVATE ../Source)
 target_compile_features(AudioHistoryBufferTests PRIVATE cxx_std_20)
 
 add_test(NAME AudioHistoryBufferTest COMMAND AudioHistoryBufferTests)
+
+add_executable(WsolaEngineTests
+    WsolaEngineTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/WsolaEngine.cpp
+)
+
+target_include_directories(WsolaEngineTests PRIVATE ../Source)
+target_compile_features(WsolaEngineTests PRIVATE cxx_std_20)
+
+add_test(NAME WsolaEngineTest COMMAND WsolaEngineTests)
