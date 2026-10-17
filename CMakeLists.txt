@@ -100,6 +100,7 @@ target_sources(PolyPitchShifter
         Source/DSP/Windowing.cpp
         Source/DSP/CrossCorrelationFinder.h
         Source/DSP/CrossCorrelationFinder.cpp
+        Source/DSP/AudioHistoryBuffer.h
 )
 
 target_include_directories(PolyPitchShifter

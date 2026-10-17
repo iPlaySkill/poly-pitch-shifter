@@ -48,3 +48,12 @@ target_include_directories(CrossCorrelationFinderTests PRIVATE ../Source)
 target_compile_features(CrossCorrelationFinderTests PRIVATE cxx_std_20)
 
 add_test(NAME CrossCorrelationFinderTest COMMAND CrossCorrelationFinderTests)
+
+add_executable(AudioHistoryBufferTests
+    AudioHistoryBufferTest.cpp
+)
+
+target_include_directories(AudioHistoryBufferTests PRIVATE ../Source)
+target_compile_features(AudioHistoryBufferTests PRIVATE cxx_std_20)
+
+add_test(NAME AudioHistoryBufferTest COMMAND AudioHistoryBufferTests)
