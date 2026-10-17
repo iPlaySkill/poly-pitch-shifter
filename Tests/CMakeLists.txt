@@ -38,3 +38,13 @@ target_include_directories(WindowingTests PRIVATE ../Source)
 target_compile_features(WindowingTests PRIVATE cxx_std_20)
 
 add_test(NAME WindowingTest COMMAND WindowingTests)
+
+add_executable(CrossCorrelationFinderTests
+    CrossCorrelationFinderTest.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+)
+
+target_include_directories(CrossCorrelationFinderTests PRIVATE ../Source)
+target_compile_features(CrossCorrelationFinderTests PRIVATE cxx_std_20)
+
+add_test(NAME CrossCorrelationFinderTest COMMAND CrossCorrelationFinderTests)

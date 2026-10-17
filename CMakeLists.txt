@@ -98,6 +98,8 @@ target_sources(PolyPitchShifter
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
         Source/DSP/Windowing.cpp
+        Source/DSP/CrossCorrelationFinder.h
+        Source/DSP/CrossCorrelationFinder.cpp
 )
 
 target_include_directories(PolyPitchShifter
