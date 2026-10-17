@@ -2,15 +2,14 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-namespace pps::params
-{
+namespace pps::params {
 
 // Parameter ID constants
-inline constexpr const char* pidBypass    = "bypass";
-inline constexpr const char* pidShift     = "shift";
-inline constexpr const char* pidFine      = "fine";
-inline constexpr const char* pidMix       = "mix";
-inline constexpr const char* pidGain      = "gain";
+inline constexpr const char *pidBypass = "bypass";
+inline constexpr const char *pidShift = "shift";
+inline constexpr const char *pidFine = "fine";
+inline constexpr const char *pidMix = "mix";
+inline constexpr const char *pidGain = "gain";
 
 // Parameter ranges
 inline constexpr float shiftMin = -12.0f;

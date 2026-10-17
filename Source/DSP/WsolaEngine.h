@@ -1,16 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <cstddef>
-#include <cmath>
-#include <algorithm>
+#include "AudioHistoryBuffer.h"
+#include "CrossCorrelationFinder.h"
 #include "HermiteResampler.h"
 #include "Windowing.h"
-#include "CrossCorrelationFinder.h"
-#include "AudioHistoryBuffer.h"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <vector>
 
-namespace pps
-{
+namespace pps {
 
 /**
  * WSOLA (Waveform Similarity Based Overlap-Add) real-time pitch shifting DSP engine.
@@ -30,7 +29,7 @@ public:
      * @param maxBlockSize   Maximum number of samples per audio buffer from DAW
      * @param numChannels    Number of audio channels (1 for Mono, 2 for Stereo)
      */
-    void prepare (double sampleRate, size_t maxBlockSize, size_t numChannels);
+    void prepare(double sampleRate, size_t maxBlockSize, size_t numChannels);
 
     /**
      * Clears internal audio history and resets DSP state.
@@ -40,12 +39,12 @@ public:
     /**
      * Sets target pitch shift in semitones (-12.0 to +12.0) and fine-tuning in cents (-50.0 to +50.0).
      */
-    void setPitchShift (float semitones, float cents) noexcept;
+    void setPitchShift(float semitones, float cents) noexcept;
 
     /**
      * Sets target pitch ratio directly: alpha = 2^(interval_in_semitones / 12).
      */
-    void setPitchRatio (double ratio) noexcept;
+    void setPitchRatio(double ratio) noexcept;
 
     /**
      * Processes a multi-channel audio buffer in real time.
@@ -55,10 +54,8 @@ public:
      * @param numChannels    Number of audio channels
      * @param numSamples     Number of samples to process
      */
-    void process (const float* const* inputChannels,
-                  float* const* outputChannels,
-                  size_t numChannels,
-                  size_t numSamples) noexcept;
+    void process(const float *const *inputChannels, float *const *outputChannels, size_t numChannels,
+                 size_t numSamples) noexcept;
 
     /**
      * Returns the algorithmic latency introduced by the WSOLA lookback and synthesis window.
@@ -68,7 +65,10 @@ public:
     /**
      * Returns current smoothed pitch ratio.
      */
-    [[nodiscard]] double getCurrentPitchRatio() const noexcept { return currentPitchRatio; }
+    [[nodiscard]] double getCurrentPitchRatio() const noexcept
+    {
+        return currentPitchRatio;
+    }
 
 private:
     void updateWindowAndHopSizes();
@@ -79,9 +79,9 @@ private:
     size_t currentMaxBlock = 512;
 
     // Window and hop parameters
-    size_t windowSize = 512;       // ~10.6 ms at 48 kHz
-    size_t hopSize = 256;          // 50% overlap
-    int maxSearchOffset = 128;     // ~2.6 ms search range
+    size_t windowSize = 512;   // ~10.6 ms at 48 kHz
+    size_t hopSize = 256;      // 50% overlap
+    int maxSearchOffset = 128; // ~2.6 ms search range
 
     // Target and smoothed pitch ratios
     double targetPitchRatio = 1.0;

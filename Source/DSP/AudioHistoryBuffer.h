@@ -1,14 +1,13 @@
 #pragma once
 
-#include <vector>
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <algorithm>
 #include <cstring>
-#include <cassert>
+#include <vector>
 
-namespace pps
-{
+namespace pps {
 
 /**
  * Multi-channel circular history delay buffer optimized for WSOLA lookback and continuous segment extraction.
@@ -22,7 +21,7 @@ public:
     /**
      * Pre-allocates buffer storage for the specified number of channels and power-of-two capacity.
      */
-    void prepare (size_t numChannels, size_t capacity = 8192)
+    void prepare(size_t numChannels, size_t capacity = 8192)
     {
         // Enforce power-of-two capacity for fast bitwise wrapping
         size_t powerOfTwoCapacity = 1;
@@ -33,7 +32,7 @@ public:
         bufferMask = bufferCapacity - 1;
         allocatedChannels = numChannels;
 
-        channelBuffers.assign (numChannels, std::vector<float> (bufferCapacity, 0.0f));
+        channelBuffers.assign(numChannels, std::vector<float>(bufferCapacity, 0.0f));
         writePos = 0;
         totalSamplesWritten = 0;
     }
@@ -43,35 +42,47 @@ public:
      */
     void reset() noexcept
     {
-        for (auto& buf : channelBuffers)
-            std::fill (buf.begin(), buf.end(), 0.0f);
+        for (auto &buf : channelBuffers)
+            std::fill(buf.begin(), buf.end(), 0.0f);
 
         writePos = 0;
         totalSamplesWritten = 0;
     }
 
-    [[nodiscard]] size_t getCapacity() const noexcept { return bufferCapacity; }
-    [[nodiscard]] size_t getNumChannels() const noexcept { return allocatedChannels; }
-    [[nodiscard]] uint64_t getTotalSamplesWritten() const noexcept { return totalSamplesWritten; }
-    [[nodiscard]] size_t getWritePosition() const noexcept { return writePos; }
+    [[nodiscard]] size_t getCapacity() const noexcept
+    {
+        return bufferCapacity;
+    }
+    [[nodiscard]] size_t getNumChannels() const noexcept
+    {
+        return allocatedChannels;
+    }
+    [[nodiscard]] uint64_t getTotalSamplesWritten() const noexcept
+    {
+        return totalSamplesWritten;
+    }
+    [[nodiscard]] size_t getWritePosition() const noexcept
+    {
+        return writePos;
+    }
 
     /**
      * Writes multi-channel audio block into the circular history.
      */
-    void write (const float* const* inputChannels, size_t numChannels, size_t numSamples) noexcept
+    void write(const float *const *inputChannels, size_t numChannels, size_t numSamples) noexcept
     {
         if (inputChannels == nullptr || numSamples == 0 || bufferCapacity == 0)
             return;
 
-        const size_t channelsToProcess = std::min (numChannels, allocatedChannels);
+        const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
 
         for (size_t ch = 0; ch < channelsToProcess; ++ch)
         {
             if (inputChannels[ch] == nullptr)
                 continue;
 
-            float* dst = channelBuffers[ch].data();
-            const float* src = inputChannels[ch];
+            float *dst = channelBuffers[ch].data();
+            const float *src = inputChannels[ch];
 
             size_t w = writePos;
             size_t remaining = numSamples;
@@ -79,8 +90,8 @@ public:
 
             while (remaining > 0)
             {
-                const size_t toWrite = std::min (remaining, bufferCapacity - w);
-                std::copy (src + srcOffset, src + srcOffset + toWrite, dst + w);
+                const size_t toWrite = std::min(remaining, bufferCapacity - w);
+                std::copy(src + srcOffset, src + srcOffset + toWrite, dst + w);
                 srcOffset += toWrite;
                 remaining -= toWrite;
                 w = (w + toWrite) & bufferMask;
@@ -99,12 +110,12 @@ public:
      * @param destination    Pointer to contiguous memory of length 'length'
      * @param length         Number of samples to extract
      */
-    void extractSegment (size_t channel, size_t lookbackOffset, float* destination, size_t length) const noexcept
+    void extractSegment(size_t channel, size_t lookbackOffset, float *destination, size_t length) const noexcept
     {
         if (channel >= allocatedChannels || destination == nullptr || length == 0 || bufferCapacity == 0)
             return;
 
-        const float* src = channelBuffers[channel].data();
+        const float *src = channelBuffers[channel].data();
 
         // Calculate start index in circular buffer: writePos - lookbackOffset - length
         const size_t samplesBack = lookbackOffset + length;
@@ -115,8 +126,8 @@ public:
 
         while (remaining > 0)
         {
-            const size_t toCopy = std::min (remaining, bufferCapacity - readPos);
-            std::copy (src + readPos, src + readPos + toCopy, destination + dstOffset);
+            const size_t toCopy = std::min(remaining, bufferCapacity - readPos);
+            std::copy(src + readPos, src + readPos + toCopy, destination + dstOffset);
             dstOffset += toCopy;
             remaining -= toCopy;
             readPos = (readPos + toCopy) & bufferMask;
@@ -126,7 +137,7 @@ public:
     /**
      * Direct pointer to channel buffer for fast correlation reads without copying.
      */
-    [[nodiscard]] const float* getChannelData (size_t channel) const noexcept
+    [[nodiscard]] const float *getChannelData(size_t channel) const noexcept
     {
         if (channel < allocatedChannels)
             return channelBuffers[channel].data();

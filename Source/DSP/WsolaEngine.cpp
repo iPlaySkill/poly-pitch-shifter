@@ -2,38 +2,38 @@
 #include <cmath>
 #include <cstring>
 
-namespace pps
-{
+namespace pps {
 
-void WsolaEngine::prepare (double sampleRate, size_t maxBlockSize, size_t numChannels)
+void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChannels)
 {
     currentSampleRate = (sampleRate > 1000.0) ? sampleRate : 48000.0;
     allocatedChannels = (numChannels > 0) ? numChannels : 2;
-    currentMaxBlock   = (maxBlockSize > 0) ? maxBlockSize : 512;
+    currentMaxBlock = (maxBlockSize > 0) ? maxBlockSize : 512;
 
     updateWindowAndHopSizes();
 
     // Pre-allocate history buffer (16384 samples provides ample lookback for 44.1 - 96 kHz)
-    historyBuffer.prepare (allocatedChannels, 16384);
+    historyBuffer.prepare(allocatedChannels, 16384);
 
     // Pre-allocate correlation finder
-    correlationFinder.prepare (windowSize, static_cast<size_t> (maxSearchOffset));
+    correlationFinder.prepare(windowSize, static_cast<size_t>(maxSearchOffset));
 
     // Pre-calculate Hann window
-    Windowing::generate (WindowType::Hann, windowSize, hannWindow);
+    Windowing::generate(WindowType::Hann, windowSize, hannWindow);
 
     // Pre-allocate resampler
-    resampler.prepare (allocatedChannels, currentMaxBlock * 4);
+    resampler.prepare(allocatedChannels, currentMaxBlock * 4);
 
     // Pre-allocate synthesis ring buffers (capacity 16384)
-    synthesisBuffer.assign (allocatedChannels, std::vector<float> (16384, 0.0f));
+    synthesisBuffer.assign(allocatedChannels, std::vector<float>(16384, 0.0f));
 
     // Pre-allocate scratch vectors for audio processing to guarantee zero heap allocation in process()
-    channelRefBuffers.assign (allocatedChannels, std::vector<float> (windowSize, 0.0f));
-    channelSearchBuffers.assign (allocatedChannels, std::vector<float> (windowSize + 2 * static_cast<size_t> (maxSearchOffset), 0.0f));
-    grainBuffers.assign (allocatedChannels, std::vector<float> (windowSize, 0.0f));
-    resampledOutputBuffers.assign (allocatedChannels, std::vector<float> (currentMaxBlock * 4, 0.0f));
-    contiguousSynthBuffer.assign (currentMaxBlock * 8 + windowSize * 4, 0.0f);
+    channelRefBuffers.assign(allocatedChannels, std::vector<float>(windowSize, 0.0f));
+    channelSearchBuffers.assign(allocatedChannels,
+                                std::vector<float>(windowSize + 2 * static_cast<size_t>(maxSearchOffset), 0.0f));
+    grainBuffers.assign(allocatedChannels, std::vector<float>(windowSize, 0.0f));
+    resampledOutputBuffers.assign(allocatedChannels, std::vector<float>(currentMaxBlock * 4, 0.0f));
+    contiguousSynthBuffer.assign(currentMaxBlock * 8 + windowSize * 4, 0.0f);
 
     reset();
 }
@@ -62,8 +62,8 @@ void WsolaEngine::reset() noexcept
     historyBuffer.reset();
     resampler.reset();
 
-    for (auto& buf : synthesisBuffer)
-        std::fill (buf.begin(), buf.end(), 0.0f);
+    for (auto &buf : synthesisBuffer)
+        std::fill(buf.begin(), buf.end(), 0.0f);
 
     synthesisReadPos = 0;
     synthesisWritePos = 0;
@@ -73,22 +73,22 @@ void WsolaEngine::reset() noexcept
     currentPitchRatio = targetPitchRatio;
 }
 
-void WsolaEngine::setPitchShift (float semitones, float cents) noexcept
+void WsolaEngine::setPitchShift(float semitones, float cents) noexcept
 {
-    const double totalSemitones = static_cast<double> (semitones) + (static_cast<double> (cents) / 100.0);
-    const double ratio = std::pow (2.0, totalSemitones / 12.0);
-    setPitchRatio (ratio);
+    const double totalSemitones = static_cast<double>(semitones) + (static_cast<double>(cents) / 100.0);
+    const double ratio = std::pow(2.0, totalSemitones / 12.0);
+    setPitchRatio(ratio);
 }
 
-void WsolaEngine::setPitchRatio (double ratio) noexcept
+void WsolaEngine::setPitchRatio(double ratio) noexcept
 {
-    targetPitchRatio = std::clamp (ratio, 0.4, 2.5);
+    targetPitchRatio = std::clamp(ratio, 0.4, 2.5);
 }
 
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
     // Latency is composed of the history lookback plus one synthesis hop
-    return static_cast<int> (windowSize + static_cast<size_t> (maxSearchOffset) + hopSize);
+    return static_cast<int>(windowSize + static_cast<size_t>(maxSearchOffset) + hopSize);
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -97,37 +97,37 @@ void WsolaEngine::processWsolaFrame() noexcept
     const size_t synthMask = synthCap - 1;
 
     // Nominal analysis step: Ha = Hs / pitchRatio
-    const auto nominalHopA = static_cast<int64_t> (std::round (static_cast<double> (hopSize) / currentPitchRatio));
+    const auto nominalHopA = static_cast<int64_t>(std::round(static_cast<double>(hopSize) / currentPitchRatio));
 
     // Lookback distance in history buffer:
     // Base latency anchor + nominal position
-    const size_t baseLookback = windowSize + static_cast<size_t> (maxSearchOffset) + hopSize;
+    const size_t baseLookback = windowSize + static_cast<size_t>(maxSearchOffset) + hopSize;
 
     if (isFirstFrame)
     {
         // On the first frame, reference is directly from the base lookback
         for (size_t ch = 0; ch < allocatedChannels; ++ch)
         {
-            historyBuffer.extractSegment (ch, baseLookback, channelRefBuffers[ch].data(), windowSize);
+            historyBuffer.extractSegment(ch, baseLookback, channelRefBuffers[ch].data(), windowSize);
         }
         lastBestOffset = 0;
         isFirstFrame = false;
     }
 
     // Extract search window around nominal analysis point: length = windowSize + 2 * maxSearchOffset
-    const auto searchLookback = static_cast<int64_t> (baseLookback) - nominalHopA + static_cast<int64_t> (lastBestOffset);
-    const size_t clampedSearchLookback = (searchLookback > 0) ? static_cast<size_t> (searchLookback) : 0;
-    const size_t searchLen = windowSize + 2 * static_cast<size_t> (maxSearchOffset);
+    const auto searchLookback = static_cast<int64_t>(baseLookback) - nominalHopA + static_cast<int64_t>(lastBestOffset);
+    const size_t clampedSearchLookback = (searchLookback > 0) ? static_cast<size_t>(searchLookback) : 0;
+    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset);
 
     for (size_t ch = 0; ch < allocatedChannels; ++ch)
     {
-        historyBuffer.extractSegment (ch, clampedSearchLookback, channelSearchBuffers[ch].data(), searchLen);
+        historyBuffer.extractSegment(ch, clampedSearchLookback, channelSearchBuffers[ch].data(), searchLen);
     }
 
     // Search for optimal phase-coherent offset across all channels
-    const float* refPtrs[8] { nullptr };
-    const float* searchPtrs[8] { nullptr };
-    const size_t chCount = std::min (allocatedChannels, size_t (8));
+    const float *refPtrs[8]{nullptr};
+    const float *searchPtrs[8]{nullptr};
+    const size_t chCount = std::min(allocatedChannels, size_t(8));
 
     for (size_t ch = 0; ch < chCount; ++ch)
     {
@@ -135,22 +135,22 @@ void WsolaEngine::processWsolaFrame() noexcept
         searchPtrs[ch] = channelSearchBuffers[ch].data();
     }
 
-    const auto correlation = correlationFinder.findBestStereoOffset (
-        refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
+    const auto correlation =
+        correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
 
     lastBestOffset = correlation.bestOffset;
 
     // Extract best-matching grain for each channel and overlap-add into synthesis buffer
     for (size_t ch = 0; ch < allocatedChannels; ++ch)
     {
-        const size_t bestGrainOffset = static_cast<size_t> (maxSearchOffset + correlation.bestOffset);
-        const float* searchData = channelSearchBuffers[ch].data() + bestGrainOffset;
+        const size_t bestGrainOffset = static_cast<size_t>(maxSearchOffset + correlation.bestOffset);
+        const float *searchData = channelSearchBuffers[ch].data() + bestGrainOffset;
 
         // Apply Hann window
-        Windowing::apply (searchData, grainBuffers[ch].data(), hannWindow.data(), windowSize);
+        Windowing::apply(searchData, grainBuffers[ch].data(), hannWindow.data(), windowSize);
 
         // Overlap-add into circular synthesis buffer
-        float* synth = synthesisBuffer[ch].data();
+        float *synth = synthesisBuffer[ch].data();
         for (size_t i = 0; i < windowSize; ++i)
         {
             const size_t writeIdx = (synthesisWritePos + i) & synthMask;
@@ -162,27 +162,24 @@ void WsolaEngine::processWsolaFrame() noexcept
         const size_t nextRefOffset = bestGrainOffset + hopSize;
         if (nextRefOffset + windowSize <= searchLen)
         {
-            std::copy (channelSearchBuffers[ch].data() + nextRefOffset,
-                       channelSearchBuffers[ch].data() + nextRefOffset + windowSize,
-                       channelRefBuffers[ch].data());
+            std::copy(channelSearchBuffers[ch].data() + nextRefOffset,
+                      channelSearchBuffers[ch].data() + nextRefOffset + windowSize, channelRefBuffers[ch].data());
         }
     }
 
     synthesisWritePos = (synthesisWritePos + hopSize) & synthMask;
 }
 
-void WsolaEngine::process (const float* const* inputChannels,
-                          float* const* outputChannels,
-                          size_t numChannels,
+void WsolaEngine::process(const float *const *inputChannels, float *const *outputChannels, size_t numChannels,
                           size_t numSamples) noexcept
 {
     if (inputChannels == nullptr || outputChannels == nullptr || numSamples == 0)
         return;
 
-    const size_t channelsToProcess = std::min (numChannels, allocatedChannels);
+    const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
 
     // Smooth currentPitchRatio towards targetPitchRatio
-    if (std::abs (currentPitchRatio - targetPitchRatio) > 1e-4)
+    if (std::abs(currentPitchRatio - targetPitchRatio) > 1e-4)
     {
         currentPitchRatio += (targetPitchRatio - currentPitchRatio) * smoothingCoeff;
     }
@@ -192,15 +189,15 @@ void WsolaEngine::process (const float* const* inputChannels,
     }
 
     // Always push input to history buffer to maintain continuous historical context
-    historyBuffer.write (inputChannels, channelsToProcess, numSamples);
+    historyBuffer.write(inputChannels, channelsToProcess, numSamples);
 
     // Bit-perfect bypass optimization when pitch ratio is unity
-    if (std::abs (currentPitchRatio - 1.0) < 0.0005)
+    if (std::abs(currentPitchRatio - 1.0) < 0.0005)
     {
         for (size_t ch = 0; ch < channelsToProcess; ++ch)
         {
             if (inputChannels[ch] != nullptr && outputChannels[ch] != nullptr)
-                std::copy (inputChannels[ch], inputChannels[ch] + numSamples, outputChannels[ch]);
+                std::copy(inputChannels[ch], inputChannels[ch] + numSamples, outputChannels[ch]);
         }
         return;
     }
@@ -211,14 +208,13 @@ void WsolaEngine::process (const float* const* inputChannels,
     // How many synthesis samples are needed to produce 'numSamples' of resampled output:
     // With Hermite resampler, ratio = 1.0 / currentPitchRatio
     const double resampleRatio = 1.0 / currentPitchRatio;
-    const size_t neededSynthSamples = static_cast<size_t> (std::ceil (static_cast<double> (numSamples) * resampleRatio)) + windowSize;
+    const size_t neededSynthSamples =
+        static_cast<size_t>(std::ceil(static_cast<double>(numSamples) * resampleRatio)) + windowSize;
 
     // Calculate how many samples are currently available in the synthesis buffer
-    auto getAvailableSynth = [&]() noexcept -> size_t
-    {
-        return (synthesisWritePos >= synthesisReadPos)
-                   ? (synthesisWritePos - synthesisReadPos)
-                   : (synthCap - synthesisReadPos + synthesisWritePos);
+    auto getAvailableSynth = [&]() noexcept -> size_t {
+        return (synthesisWritePos >= synthesisReadPos) ? (synthesisWritePos - synthesisReadPos)
+                                                       : (synthCap - synthesisReadPos + synthesisWritePos);
     };
 
     // Synthesize grains until enough audio is available for resampling
@@ -229,9 +225,9 @@ void WsolaEngine::process (const float* const* inputChannels,
 
     // Use preallocated scratch buffer to extract contiguous synthesis samples for resampling
     if (contiguousSynthBuffer.size() < neededSynthSamples)
-        contiguousSynthBuffer.resize (neededSynthSamples * 2, 0.0f);
+        contiguousSynthBuffer.resize(neededSynthSamples * 2, 0.0f);
 
-    float* contiguousSynth = contiguousSynthBuffer.data();
+    float *contiguousSynth = contiguousSynthBuffer.data();
 
     for (size_t ch = 0; ch < channelsToProcess; ++ch)
     {
@@ -239,29 +235,25 @@ void WsolaEngine::process (const float* const* inputChannels,
             continue;
 
         // Unroll circular synthesis buffer into contiguous scratch buffer
-        const float* synth = synthesisBuffer[ch].data();
+        const float *synth = synthesisBuffer[ch].data();
         for (size_t i = 0; i < neededSynthSamples; ++i)
         {
             contiguousSynth[i] = synth[(synthesisReadPos + i) & synthMask];
         }
 
         // Resample from contiguous synthesis audio into output buffer
-        resampler.processChannel (contiguousSynth,
-                                  neededSynthSamples,
-                                  outputChannels[ch],
-                                  numSamples,
-                                  resampleRatio,
-                                  ch);
+        resampler.processChannel(contiguousSynth, neededSynthSamples, outputChannels[ch], numSamples, resampleRatio,
+                                 ch);
 
         // Clear consumed portion in circular synthesis buffer
-        const size_t consumed = static_cast<size_t> (std::floor (static_cast<double> (numSamples) * resampleRatio));
+        const size_t consumed = static_cast<size_t>(std::floor(static_cast<double>(numSamples) * resampleRatio));
         for (size_t i = 0; i < consumed; ++i)
         {
             synthesisBuffer[ch][(synthesisReadPos + i) & synthMask] = 0.0f;
         }
     }
 
-    const size_t consumed = static_cast<size_t> (std::floor (static_cast<double> (numSamples) * resampleRatio));
+    const size_t consumed = static_cast<size_t>(std::floor(static_cast<double>(numSamples) * resampleRatio));
     synthesisReadPos = (synthesisReadPos + consumed) & synthMask;
 }
 

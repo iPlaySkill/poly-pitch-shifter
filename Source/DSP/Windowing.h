@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <cstddef>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <vector>
 
-namespace pps
-{
+namespace pps {
 
 enum class WindowType
 {
@@ -30,19 +29,19 @@ public:
      * Generates a window table into destination vector.
      * Pre-allocates and caches table to eliminate runtime math calculations in processBlock.
      */
-    static void generate (WindowType type, size_t length, std::vector<float>& destination);
+    static void generate(WindowType type, size_t length, std::vector<float> &destination);
 
     /**
      * Applies a window table in-place onto a float buffer.
      */
-    static inline void applyInPlace (float* data, const float* window, size_t length) noexcept
+    static inline void applyInPlace(float *data, const float *window, size_t length) noexcept
     {
         if (data == nullptr || window == nullptr || length == 0)
             return;
 
         // Loop unrolled 4x for compiler SIMD vectorization
         size_t i = 0;
-        const size_t unrolled = length & ~size_t (3);
+        const size_t unrolled = length & ~size_t(3);
 
         for (; i < unrolled; i += 4)
         {
@@ -61,13 +60,13 @@ public:
     /**
      * Applies a window table from source to destination buffer.
      */
-    static inline void apply (const float* source, float* destination, const float* window, size_t length) noexcept
+    static inline void apply(const float *source, float *destination, const float *window, size_t length) noexcept
     {
         if (source == nullptr || destination == nullptr || window == nullptr || length == 0)
             return;
 
         size_t i = 0;
-        const size_t unrolled = length & ~size_t (3);
+        const size_t unrolled = length & ~size_t(3);
 
         for (; i < unrolled; i += 4)
         {
@@ -87,9 +86,8 @@ public:
      * Verifies if a window satisfies the Overlap-Add partition of unity condition:
      * sum_k w[n - k*hop] == 1.0 across the overlapping frames.
      */
-    [[nodiscard]] static bool verifyPartitionOfUnity (const std::vector<float>& window,
-                                                      size_t hopSize,
-                                                      float tolerance = 1e-4f) noexcept;
+    [[nodiscard]] static bool verifyPartitionOfUnity(const std::vector<float> &window, size_t hopSize,
+                                                     float tolerance = 1e-4f) noexcept;
 };
 
 } // namespace pps

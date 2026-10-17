@@ -1,12 +1,11 @@
 #include "Windowing.h"
 #include <numbers>
 
-namespace pps
-{
+namespace pps {
 
-void Windowing::generate (WindowType type, size_t length, std::vector<float>& destination)
+void Windowing::generate(WindowType type, size_t length, std::vector<float> &destination)
 {
-    destination.resize (length);
+    destination.resize(length);
     if (length == 0)
         return;
 
@@ -17,64 +16,58 @@ void Windowing::generate (WindowType type, size_t length, std::vector<float>& de
     }
 
     constexpr double twoPi = 2.0 * 3.14159265358979323846;
-    const double N = static_cast<double> (length);
+    const double N = static_cast<double>(length);
 
     switch (type)
     {
-        case WindowType::Hann:
+    case WindowType::Hann: {
+        for (size_t n = 0; n < length; ++n)
         {
-            for (size_t n = 0; n < length; ++n)
-            {
-                destination[n] = static_cast<float> (0.5 * (1.0 - std::cos (twoPi * static_cast<double> (n) / N)));
-            }
-            break;
+            destination[n] = static_cast<float>(0.5 * (1.0 - std::cos(twoPi * static_cast<double>(n) / N)));
         }
-        case WindowType::Hamming:
+        break;
+    }
+    case WindowType::Hamming: {
+        for (size_t n = 0; n < length; ++n)
         {
-            for (size_t n = 0; n < length; ++n)
-            {
-                destination[n] = static_cast<float> (0.54 - 0.46 * std::cos (twoPi * static_cast<double> (n) / N));
-            }
-            break;
+            destination[n] = static_cast<float>(0.54 - 0.46 * std::cos(twoPi * static_cast<double>(n) / N));
         }
-        case WindowType::BlackmanHarris:
-        {
-            constexpr double a0 = 0.35875;
-            constexpr double a1 = 0.48829;
-            constexpr double a2 = 0.14128;
-            constexpr double a3 = 0.01168;
+        break;
+    }
+    case WindowType::BlackmanHarris: {
+        constexpr double a0 = 0.35875;
+        constexpr double a1 = 0.48829;
+        constexpr double a2 = 0.14128;
+        constexpr double a3 = 0.01168;
 
-            for (size_t n = 0; n < length; ++n)
-            {
-                const double angle = twoPi * static_cast<double> (n) / N;
-                destination[n] = static_cast<float> (a0 - a1 * std::cos (angle) + a2 * std::cos (2.0 * angle) - a3 * std::cos (3.0 * angle));
-            }
-            break;
-        }
-        case WindowType::HalfHannFadeIn:
+        for (size_t n = 0; n < length; ++n)
         {
-            constexpr double pi = 3.14159265358979323846;
-            for (size_t n = 0; n < length; ++n)
-            {
-                destination[n] = static_cast<float> (0.5 * (1.0 - std::cos (pi * static_cast<double> (n) / N)));
-            }
-            break;
+            const double angle = twoPi * static_cast<double>(n) / N;
+            destination[n] =
+                static_cast<float>(a0 - a1 * std::cos(angle) + a2 * std::cos(2.0 * angle) - a3 * std::cos(3.0 * angle));
         }
-        case WindowType::HalfHannFadeOut:
+        break;
+    }
+    case WindowType::HalfHannFadeIn: {
+        constexpr double pi = 3.14159265358979323846;
+        for (size_t n = 0; n < length; ++n)
         {
-            constexpr double pi = 3.14159265358979323846;
-            for (size_t n = 0; n < length; ++n)
-            {
-                destination[n] = static_cast<float> (0.5 * (1.0 + std::cos (pi * static_cast<double> (n) / N)));
-            }
-            break;
+            destination[n] = static_cast<float>(0.5 * (1.0 - std::cos(pi * static_cast<double>(n) / N)));
         }
+        break;
+    }
+    case WindowType::HalfHannFadeOut: {
+        constexpr double pi = 3.14159265358979323846;
+        for (size_t n = 0; n < length; ++n)
+        {
+            destination[n] = static_cast<float>(0.5 * (1.0 + std::cos(pi * static_cast<double>(n) / N)));
+        }
+        break;
+    }
     }
 }
 
-bool Windowing::verifyPartitionOfUnity (const std::vector<float>& window,
-                                        size_t hopSize,
-                                        float tolerance) noexcept
+bool Windowing::verifyPartitionOfUnity(const std::vector<float> &window, size_t hopSize, float tolerance) noexcept
 {
     if (window.empty() || hopSize == 0 || hopSize >= window.size())
         return false;
@@ -87,7 +80,7 @@ bool Windowing::verifyPartitionOfUnity (const std::vector<float>& window,
             sum += window[k];
         }
 
-        if (std::abs (sum - 1.0f) > tolerance)
+        if (std::abs(sum - 1.0f) > tolerance)
             return false;
     }
 
