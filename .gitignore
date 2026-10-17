@@ -10,6 +10,8 @@ cmake-build-*/
 *.sln.docstates
 *.user
 *.suo
+CppProperties.json
+launch.vs.json
 x64/
 Debug/
 Release/
