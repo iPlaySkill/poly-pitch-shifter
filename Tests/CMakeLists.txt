@@ -17,7 +17,14 @@ add_executable(RingBufferTests
     RingBufferTest.cpp
 )
 
-target_include_directories(RingBufferTests PRIVATE ../Source)
-target_compile_features(RingBufferTests PRIVATE cxx_std_20)
-
 add_test(NAME RingBufferTest COMMAND RingBufferTests)
+
+add_executable(HermiteResamplerTests
+    HermiteResamplerTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+)
+
+target_include_directories(HermiteResamplerTests PRIVATE ../Source)
+target_compile_features(HermiteResamplerTests PRIVATE cxx_std_20)
+
+add_test(NAME HermiteResamplerTest COMMAND HermiteResamplerTests)
