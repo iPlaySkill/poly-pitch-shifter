@@ -96,6 +96,8 @@ target_sources(PolyPitchShifter
         Source/Parameters.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
+        Source/DSP/Windowing.h
+        Source/DSP/Windowing.cpp
 )
 
 target_include_directories(PolyPitchShifter

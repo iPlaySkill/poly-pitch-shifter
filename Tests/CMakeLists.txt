@@ -28,3 +28,13 @@ target_include_directories(HermiteResamplerTests PRIVATE ../Source)
 target_compile_features(HermiteResamplerTests PRIVATE cxx_std_20)
 
 add_test(NAME HermiteResamplerTest COMMAND HermiteResamplerTests)
+
+add_executable(WindowingTests
+    WindowingTest.cpp
+    ../Source/DSP/Windowing.cpp
+)
+
+target_include_directories(WindowingTests PRIVATE ../Source)
+target_compile_features(WindowingTests PRIVATE cxx_std_20)
+
+add_test(NAME WindowingTest COMMAND WindowingTests)
