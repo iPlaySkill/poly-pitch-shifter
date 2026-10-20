@@ -79,6 +79,18 @@ public:
     {
         return currentState == TransientState::Attack || currentState == TransientState::Hold;
     }
+    [[nodiscard]] bool isDecayActive() const noexcept
+    {
+        return currentState == TransientState::Decay;
+    }
+    [[nodiscard]] size_t getHoldSamplesRemaining() const noexcept
+    {
+        return holdSamplesLeft;
+    }
+    [[nodiscard]] size_t getDecaySamplesRemaining() const noexcept
+    {
+        return decaySamplesLeft;
+    }
 
 private:
     struct ChannelDetector
