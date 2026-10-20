@@ -42,8 +42,8 @@ void AntiAliasingFilter::updateForPitchRatio(double pitchRatio) noexcept
     }
     else
     {
-        // When pitching up, cutoff = (Nyquist / alpha) * 0.92 safety margin
-        const double safeCutoff = (nyquist / pitchRatio) * 0.92;
+        // When pitching up, cutoff = (Nyquist / alpha) * safetyMarginFactor
+        const double safeCutoff = (nyquist / pitchRatio) * static_cast<double>(safetyMarginFactor);
         targetCutoff = static_cast<float>(std::clamp(safeCutoff, 200.0, nyquist * 0.95));
     }
 }
