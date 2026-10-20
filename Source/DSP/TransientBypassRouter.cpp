@@ -1,0 +1,151 @@
+#include "TransientBypassRouter.h"
+#include <algorithm>
+#include <cmath>
+
+namespace pps {
+
+void TransientBypassRouter::prepare(double sampleRate, size_t numChannels, size_t maxLatency)
+{
+    currentSampleRate = (sampleRate > 1000.0) ? sampleRate : 48000.0;
+    allocatedChannels = (numChannels > 0) ? numChannels : 2;
+
+    // Enforce power of two capacity for fast bitwise wrapping
+    size_t cap = 1024;
+    while (cap < maxLatency + 1024)
+        cap <<= 1;
+
+    delayLineCapacity = cap;
+    delayLineMask = delayLineCapacity - 1;
+
+    dryDelayBuffers.assign(allocatedChannels, std::vector<float>(delayLineCapacity, 0.0f));
+    activationMask.assign(2048, 0.0f);
+
+    detector.prepare(currentSampleRate, allocatedChannels);
+    reset();
+}
+
+void TransientBypassRouter::reset() noexcept
+{
+    for (auto &buf : dryDelayBuffers)
+        std::fill(buf.begin(), buf.end(), 0.0f);
+
+    std::fill(activationMask.begin(), activationMask.end(), 0.0f);
+    writePos = 0;
+    detector.reset();
+}
+
+void TransientBypassRouter::setAlignmentDelay(int delaySamples) noexcept
+{
+    alignmentDelaySamples = std::clamp(delaySamples, 0, static_cast<int>(delayLineCapacity - 1));
+}
+
+void TransientBypassRouter::setEnabled(bool shouldBeEnabled) noexcept
+{
+    isBypassEnabled = shouldBeEnabled;
+}
+
+void TransientBypassRouter::feedDryAudio(const float *const *dryChannels, size_t numChannels,
+                                         size_t numSamples) noexcept
+{
+    if (dryChannels == nullptr || numSamples == 0 || delayLineCapacity == 0)
+        return;
+
+    const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
+    if (activationMask.size() < numSamples)
+        activationMask.resize(numSamples * 2, 0.0f);
+
+    // 1. Run transient detector on the incoming dry block
+    detector.processBlock(dryChannels, channelsToProcess, numSamples, activationMask.data());
+
+    // 2. Write dry audio into circular delay buffer
+    for (size_t ch = 0; ch < channelsToProcess; ++ch)
+    {
+        if (dryChannels[ch] == nullptr)
+            continue;
+
+        float *dst = dryDelayBuffers[ch].data();
+        const float *src = dryChannels[ch];
+
+        size_t w = writePos;
+        size_t remaining = numSamples;
+        size_t srcOffset = 0;
+
+        while (remaining > 0)
+        {
+            const size_t toWrite = std::min(remaining, delayLineCapacity - w);
+            std::copy(src + srcOffset, src + srcOffset + toWrite, dst + w);
+            srcOffset += toWrite;
+            remaining -= toWrite;
+            w = (w + toWrite) & delayLineMask;
+        }
+    }
+
+    writePos = (writePos + numSamples) & delayLineMask;
+}
+
+void TransientBypassRouter::blendOutput(const float *const *wsolaWetChannels, float *const *outputChannels,
+                                        size_t numChannels, size_t numSamples) noexcept
+{
+    if (wsolaWetChannels == nullptr || outputChannels == nullptr || numSamples == 0)
+        return;
+
+    const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
+
+    // If transient bypass is disabled, pass WSOLA wet signal directly
+    if (!isBypassEnabled)
+    {
+        for (size_t ch = 0; ch < channelsToProcess; ++ch)
+        {
+            if (wsolaWetChannels[ch] != nullptr && outputChannels[ch] != nullptr)
+            {
+                std::copy(wsolaWetChannels[ch], wsolaWetChannels[ch] + numSamples, outputChannels[ch]);
+            }
+        }
+        return;
+    }
+
+    constexpr float halfPi = 1.57079632679489661923f;
+
+    for (size_t ch = 0; ch < channelsToProcess; ++ch)
+    {
+        if (wsolaWetChannels[ch] == nullptr || outputChannels[ch] == nullptr)
+            continue;
+
+        const float *wet = wsolaWetChannels[ch];
+        const float *delayBuf = dryDelayBuffers[ch].data();
+        float *out = outputChannels[ch];
+
+        for (size_t i = 0; i < numSamples; ++i)
+        {
+            const float mask = activationMask[i];
+
+            if (mask <= 0.0001f)
+            {
+                out[i] = wet[i];
+            }
+            else
+            {
+                // Equal-power crossfade between delayed dry transient and WSOLA wet audio
+                const float angle = mask * halfPi;
+                const float gTransient = std::sin(angle);
+                const float gWet = std::cos(angle);
+
+                // Sample delayed dry audio at writePos - numSamples + i - alignmentDelaySamples
+                const size_t samplesBack = numSamples - i + static_cast<size_t>(alignmentDelaySamples);
+                const size_t readIdx = (writePos + delayLineCapacity - (samplesBack & delayLineMask)) & delayLineMask;
+                const float dryDelayedSample = delayBuf[readIdx];
+
+                out[i] = (dryDelayedSample * gTransient) + (wet[i] * gWet);
+            }
+        }
+    }
+}
+
+void TransientBypassRouter::process(const float *const *dryChannels, const float *const *wsolaWetChannels,
+                                    float *const *outputChannels, size_t numChannels, size_t numSamples) noexcept
+{
+    feedDryAudio(dryChannels, numChannels, numSamples);
+    blendOutput(wsolaWetChannels, outputChannels, numChannels, numSamples);
+}
+
+} // namespace pps
