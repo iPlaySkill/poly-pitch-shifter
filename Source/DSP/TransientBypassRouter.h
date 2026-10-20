@@ -53,6 +53,14 @@ public:
     {
         return alignmentDelaySamples;
     }
+    [[nodiscard]] size_t getDelayLineCapacity() const noexcept
+    {
+        return delayLineCapacity;
+    }
+    [[nodiscard]] size_t getActiveChannelCount() const noexcept
+    {
+        return allocatedChannels;
+    }
 
     /**
      * Pushes raw incoming dry audio into the alignment delay line and runs transient detection.
