@@ -118,3 +118,35 @@ target_link_libraries(ParametersTests
 )
 
 add_test(NAME ParametersTest COMMAND ParametersTests)
+
+add_executable(LatencyReportingTests
+    LatencyReportingTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(LatencyReportingTests PRIVATE ../Source)
+target_compile_features(LatencyReportingTests PRIVATE cxx_std_20)
+
+add_test(NAME LatencyReportingTest COMMAND LatencyReportingTests)
+
+add_executable(TransientEndToEndTests
+    TransientEndToEndTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(TransientEndToEndTests PRIVATE ../Source)
+target_compile_features(TransientEndToEndTests PRIVATE cxx_std_20)
+
+add_test(NAME TransientEndToEndTest COMMAND TransientEndToEndTests)
