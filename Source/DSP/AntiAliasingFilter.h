@@ -52,6 +52,14 @@ public:
     {
         return currentCutoff;
     }
+    [[nodiscard]] float getSafetyMarginFactor() const noexcept
+    {
+        return safetyMarginFactor;
+    }
+    void setSafetyMarginFactor(float factor) noexcept
+    {
+        safetyMarginFactor = std::clamp(factor, 0.70f, 0.98f);
+    }
     [[nodiscard]] bool isFilteringActive() const noexcept
     {
         const float maxOpenPassband = static_cast<float>(std::min(20000.0, currentSampleRate * 0.45));
@@ -83,6 +91,7 @@ private:
     float targetCutoff = 20000.0f;
     float currentCutoff = 20000.0f;
     float smoothingCoeff = 0.05f;
+    float safetyMarginFactor = 0.92f;
 
     // Two cascaded 2nd-order biquad stages for 4th-order 24 dB/oct slope
     BiquadCoeffs stage1Coeffs;
