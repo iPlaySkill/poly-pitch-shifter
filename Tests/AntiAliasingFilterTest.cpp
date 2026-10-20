@@ -146,6 +146,29 @@ void testStereoIndependenceAndStability()
     std::cout << "  Passed: No cross-talk and numeric stability verified across sweep\n";
 }
 
+void testSafetyMarginFactorConfiguration()
+{
+    std::cout << "[Test] AntiAliasingFilter: Safety Margin Factor Configuration...\n";
+    pps::AntiAliasingFilter filter;
+    filter.prepare(48000.0, 1);
+
+    // Default factor is 0.92
+    assert(std::abs(filter.getSafetyMarginFactor() - 0.92f) < 1e-5f);
+
+    // Set custom factor
+    filter.setSafetyMarginFactor(0.85f);
+    assert(std::abs(filter.getSafetyMarginFactor() - 0.85f) < 1e-5f);
+
+    // Test bounds clamping [0.70, 0.98]
+    filter.setSafetyMarginFactor(0.20f);
+    assert(std::abs(filter.getSafetyMarginFactor() - 0.70f) < 1e-5f);
+
+    filter.setSafetyMarginFactor(1.50f);
+    assert(std::abs(filter.getSafetyMarginFactor() - 0.98f) < 1e-5f);
+
+    std::cout << "  Passed: Safety margin factor clamped and configured correctly.\n";
+}
+
 } // namespace
 
 int main()
@@ -155,6 +178,7 @@ int main()
     testDynamicCutoffTracking();
     testFrequencyAttenuation();
     testStereoIndependenceAndStability();
+    testSafetyMarginFactorConfiguration();
     std::cout << "=== All AntiAliasingFilter Tests Passed Successfully ===\n";
     return 0;
 }
