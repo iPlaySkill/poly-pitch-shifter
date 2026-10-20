@@ -107,6 +107,8 @@ target_sources(PolyPitchShifter
         Source/DSP/TransientDetector.cpp
         Source/DSP/TransientBypassRouter.h
         Source/DSP/TransientBypassRouter.cpp
+        Source/DSP/AntiAliasingFilter.h
+        Source/DSP/AntiAliasingFilter.cpp
 )
 
 target_include_directories(PolyPitchShifter

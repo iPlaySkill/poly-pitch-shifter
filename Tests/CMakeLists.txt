@@ -91,3 +91,13 @@ target_include_directories(TransientBypassRouterTests PRIVATE ../Source)
 target_compile_features(TransientBypassRouterTests PRIVATE cxx_std_20)
 
 add_test(NAME TransientBypassRouterTest COMMAND TransientBypassRouterTests)
+
+add_executable(AntiAliasingFilterTests
+    AntiAliasingFilterTest.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+)
+
+target_include_directories(AntiAliasingFilterTests PRIVATE ../Source)
+target_compile_features(AntiAliasingFilterTests PRIVATE cxx_std_20)
+
+add_test(NAME AntiAliasingFilterTest COMMAND AntiAliasingFilterTests)
