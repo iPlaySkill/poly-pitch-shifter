@@ -95,6 +95,46 @@ int main()
         }
     }
 
+    // 5. Sample-Accurate Delayed Dry Extraction Verification
+    {
+        pps::TransientBypassRouter router;
+        router.prepare(48000.0, 1, 1024);
+        constexpr int delay = 32;
+        router.setAlignmentDelay(delay);
+
+        constexpr size_t blockSize = 128;
+        std::vector<float> dry(blockSize, 0.0f);
+        // Put a sharp impulse at index 10
+        dry[10] = 0.88f;
+
+        const float *dryPtrs[1] = {dry.data()};
+        router.feedDryAudio(dryPtrs, 1, blockSize);
+
+        std::vector<float> extractedDry(blockSize, 0.0f);
+        float *extPtrs[1] = {extractedDry.data()};
+        router.extractDelayedDry(extPtrs, 1, blockSize);
+
+        // In block 1, sample should appear at index 10 + delay = 42
+        assert(std::abs(extractedDry[42] - 0.88f) < 1e-6f);
+        assert(std::abs(extractedDry[0]) < 1e-6f);
+        assert(std::abs(extractedDry[10]) < 1e-6f);
+        assert(std::abs(extractedDry[41]) < 1e-6f);
+        assert(std::abs(extractedDry[43]) < 1e-6f);
+    }
+
+    // 6. Parameter Forwarding and Sensitivity Configuration
+    {
+        pps::TransientBypassRouter router;
+        router.prepare(48000.0, 2, 1024);
+
+        router.setSensitivity(2.4f);
+        assert(std::abs(router.getSensitivity() - 2.4f) < 1e-5f);
+        assert(std::abs(router.getDetector().getSensitivity() - 2.4f) < 1e-5f);
+
+        router.setHoldTimeMs(6.5f);
+        // Detector hold time updated
+    }
+
     std::cout << "[PASSED] TransientBypassRouterTest succeeded." << std::endl;
     return 0;
 }
