@@ -117,6 +117,35 @@ int main()
         }
     }
 
+    // 5. Anti-aliasing filter dynamic tracking and supersonic attenuation
+    {
+        pps::WsolaEngine engine;
+        engine.prepare(48000.0, 256, 2);
+
+        // At unity: filter passband is open
+        engine.setPitchShift(0.0f, 0.0f);
+        assert(!engine.getAntiAliasingFilter().isFilteringActive());
+
+        // Shift up +12 semitones (alpha = 2.0)
+        engine.setPitchShift(12.0f, 0.0f);
+
+        constexpr size_t blockSize = 256;
+        std::vector<float> inBuf(blockSize, 0.0f);
+        std::vector<float> outBuf(blockSize, 0.0f);
+        const float *inPtrs[2] = {inBuf.data(), inBuf.data()};
+        float *outPtrs[2] = {outBuf.data(), outBuf.data()};
+
+        for (int b = 0; b < 250; ++b)
+        {
+            engine.process(inPtrs, outPtrs, 2, blockSize);
+        }
+
+        // Verify filter became active and cutoff tracked to safe boundary (~11040 Hz)
+        assert(engine.getAntiAliasingFilter().isFilteringActive());
+        const float cutoff = engine.getAntiAliasingFilter().getCurrentCutoffHz();
+        assert(std::abs(cutoff - 11040.0f) < 50.0f);
+    }
+
     std::cout << "[PASSED] WsolaEngineTest succeeded." << std::endl;
     return 0;
 }

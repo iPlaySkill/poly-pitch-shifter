@@ -36,9 +36,18 @@
 
 ---
 
-### Этап 3: Детекция транзиентов и оптимизация задержки (В плане)
-- **Целевая ветка:** `feature/transient-processing-and-latency`
-- **Задачи:** Детектор высокочастотного энергетического потока для выделения ударов медиатора, транзиентный байпас атак, фильтры подавления алиасинга, передача точной компенсации задержки плагина (PDC) хосту DAW (окно 5–10 мс).
+### Этап 3: Детекция транзиентов и оптимизация задержки (Завершен)
+- **Ветка:** `feature/transient-processing-and-latency`
+- **Количество коммитов:** 45 атомарных коммитов
+- **Основные результаты этапа:**
+  - Реализован детектор транзиентных атак медиатора (`TransientDetector`) с высокочастотной дифференциацией ($y[n] = x[n] - 0.95 x[n-1]$), асимметричным огибателем ($\tau_{\text{att}} = 0.5$ мс, $\tau_{\text{rel}} = 15$ мс), адаптивным динамическим порогом и 4-стадийным стерео-синхронизированным конечным автоматом (FSM).
+  - Спроектирован маршрутизатор байпаса транзиентов (`TransientBypassRouter`) на циклическом буфере задержки с сэмпловым фазовым выравниванием под алгоритмическую задержку WSOLA и изоэнергетическим косинусным кроссфейдом ($\sin^2 + \cos^2 \equiv 1.0$).
+  - Разработан каскадный 4-полюсный (24 дБ/октава) фильтр Баттерворта Direct Form II Transposed (`AntiAliasingFilter`) с динамическим отслеживанием коэффициента сдвига тона $\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$ для полного подавления алиасинга при повышении высоты тона.
+  - Интегрирована прецизионная сэмпловая компенсация задержки плагина (PDC, Plug-in Delay Compensation) с передачей точного значения хосту DAW через `setLatencySamples()`.
+  - В параметрическое дерево APVTS добавлены новые элементы управления: `Transient Bypass` (включение/отключение обхода атак) и `Transient Sensitivity` (чувствительность детекции $0.1\times - 5.0\times$).
+  - Создан исчерпывающий комплекс верификационных и нагрузочных тестов: `TransientDetectorTest`, `TransientBypassRouterTest`, `AntiAliasingFilterTest`, `ParametersTest`, `LatencyReportingTest`, `TransientEndToEndTest`, `DspStressTest`, `PolyphonicGuitarChordTest`, `DspBenchmarkTest`.
+  - Достигнута скорость обработки в 449x быстрее реального времени при загрузке одного ядра процессора всего 0.22%.
+  - Оформлена математическая спецификация алгоритмов (`docs/TRANSIENT_PROCESSING.md`) и экспериментальные замеры производительности (`docs/BENCHMARK_RESULTS.md`).
 
 ---
 
@@ -88,9 +97,18 @@
 
 ---
 
-### Stage 3: Transient Processing and Latency Optimization (Planned)
-- **Target Branch:** `feature/transient-processing-and-latency`
-- **Scope:** High-frequency energy flux detector for pick attack preservation, transient bypass routing, anti-aliasing low-pass filters, precise PDC host latency reporting (5–10 ms window).
+### Stage 3: Transient Processing and Latency Optimization (Completed)
+- **Branch:** `feature/transient-processing-and-latency`
+- **Commits:** 45 atomic commits
+- **Key Deliverables:**
+  - Electric guitar pick attack detector (`TransientDetector`) featuring high-frequency differentiating pre-emphasis ($y[n] = x[n] - 0.95 x[n-1]$), asymmetric envelope following ($\tau_{\text{att}} = 0.5$ ms, $\tau_{\text{rel}} = 15$ ms), adaptive dynamic thresholding, and stereo-locked 4-state FSM.
+  - Latency-aligned transient bypass router (`TransientBypassRouter`) on circular delay line with equal-power cosine crossfading ($\sin^2 + \cos^2 \equiv 1.0$) for transparent attack preservation.
+  - Cascaded 4th-order (24 dB/octave) Butterworth anti-aliasing lowpass filter (`AntiAliasingFilter`) in Direct Form II Transposed with dynamic Nyquist guard band tracking $\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$ when pitching up ($\alpha > 1.0$).
+  - Sample-accurate Plug-in Delay Compensation (PDC) reporting to the host DAW via `setLatencySamples()`.
+  - Added APVTS parameters: `Transient Bypass` (bool) and `Transient Sensitivity` (float, $0.1\times - 5.0\times$).
+  - Comprehensive unit, stress, and benchmark test suites: `TransientDetectorTest`, `TransientBypassRouterTest`, `AntiAliasingFilterTest`, `ParametersTest`, `LatencyReportingTest`, `TransientEndToEndTest`, `DspStressTest`, `PolyphonicGuitarChordTest`, `DspBenchmarkTest`.
+  - Real-time processing speedup of 449x faster than real-time with single-core CPU load of only 0.22%.
+  - Mathematical documentation (`docs/TRANSIENT_PROCESSING.md`) and experimental performance records (`docs/BENCHMARK_RESULTS.md`).
 
 ---
 

@@ -12,12 +12,16 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     fineParam = apvts.getRawParameterValue(pps::params::pidFine);
     mixParam = apvts.getRawParameterValue(pps::params::pidMix);
     gainParam = apvts.getRawParameterValue(pps::params::pidGain);
+    transientBypassParam = apvts.getRawParameterValue(pps::params::pidTransientBypass);
+    transientSensitivityParam = apvts.getRawParameterValue(pps::params::pidTransientSensitivity);
 
     apvts.addParameterListener(pps::params::pidBypass, this);
     apvts.addParameterListener(pps::params::pidShift, this);
     apvts.addParameterListener(pps::params::pidFine, this);
     apvts.addParameterListener(pps::params::pidMix, this);
     apvts.addParameterListener(pps::params::pidGain, this);
+    apvts.addParameterListener(pps::params::pidTransientBypass, this);
+    apvts.addParameterListener(pps::params::pidTransientSensitivity, this);
 }
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
@@ -27,6 +31,8 @@ PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
     apvts.removeParameterListener(pps::params::pidFine, this);
     apvts.removeParameterListener(pps::params::pidMix, this);
     apvts.removeParameterListener(pps::params::pidGain, this);
+    apvts.removeParameterListener(pps::params::pidTransientBypass, this);
+    apvts.removeParameterListener(pps::params::pidTransientSensitivity, this);
 }
 
 void PolyPitchShifterAudioProcessor::parameterChanged(const juce::String &parameterID, float newValue)
@@ -36,6 +42,14 @@ void PolyPitchShifterAudioProcessor::parameterChanged(const juce::String &parame
     if (parameterID == pps::params::pidShift || parameterID == pps::params::pidFine)
     {
         wsolaEngine.setPitchShift(getShiftSemitones(), getFineCents());
+    }
+    else if (parameterID == pps::params::pidTransientBypass)
+    {
+        transientRouter.setEnabled(newValue > 0.5f);
+    }
+    else if (parameterID == pps::params::pidTransientSensitivity)
+    {
+        transientRouter.setSensitivity(newValue);
     }
 }
 
@@ -92,8 +106,16 @@ void PolyPitchShifterAudioProcessor::prepareToPlay(double sampleRate, int sample
     wsolaEngine.prepare(sampleRate, static_cast<size_t>(samplesPerBlock), numChannels);
     wsolaEngine.setPitchShift(getShiftSemitones(), getFineCents());
 
+    const int wsolaLatency = wsolaEngine.getLatencyInSamples();
+    transientRouter.prepare(sampleRate, numChannels, static_cast<size_t>(wsolaLatency + 2048));
+    transientRouter.setAlignmentDelay(wsolaLatency);
+    transientRouter.setEnabled(isTransientBypassEnabled());
+    transientRouter.setSensitivity(getTransientSensitivity());
+
     dryBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
+    delayedDryBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
     wetBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
+    blendedBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
 
     smoothedMix.reset(sampleRate, 0.020);
     smoothedMix.setCurrentAndTarget(getMixPercentage() / 100.0f);
@@ -101,14 +123,17 @@ void PolyPitchShifterAudioProcessor::prepareToPlay(double sampleRate, int sample
     smoothedGain.reset(sampleRate, 0.020);
     smoothedGain.setCurrentAndTarget(juce::Decibels::decibelsToGain(getGainDb()));
 
-    setLatencySamples(wsolaEngine.getLatencyInSamples());
+    setLatencySamples(wsolaLatency);
 }
 
 void PolyPitchShifterAudioProcessor::releaseResources()
 {
     wsolaEngine.reset();
+    transientRouter.reset();
     dryBuffer.setSize(0, 0);
+    delayedDryBuffer.setSize(0, 0);
     wetBuffer.setSize(0, 0);
+    blendedBuffer.setSize(0, 0);
 }
 
 bool PolyPitchShifterAudioProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
@@ -146,29 +171,48 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
     // Dynamic latency check for host DAW PDC
     const int currentLatency = wsolaEngine.getLatencyInSamples();
     if (getLatencySamples() != currentLatency)
+    {
         setLatencySamples(currentLatency);
+        transientRouter.setAlignmentDelay(currentLatency);
+    }
 
     const int numChannels = std::min(totalNumInputChannels, totalNumOutputChannels);
 
-    // Update smoothers
+    // Update smoothers and transient controls
     smoothedMix.setTarget(getMixPercentage() / 100.0f);
     smoothedGain.setTarget(juce::Decibels::decibelsToGain(getGainDb()));
+    transientRouter.setEnabled(isTransientBypassEnabled());
+    transientRouter.setSensitivity(getTransientSensitivity());
 
     if (dryBuffer.getNumSamples() < numSamples)
     {
         dryBuffer.setSize(numChannels, numSamples, false, false, true);
+        delayedDryBuffer.setSize(numChannels, numSamples, false, false, true);
         wetBuffer.setSize(numChannels, numSamples, false, false, true);
+        blendedBuffer.setSize(numChannels, numSamples, false, false, true);
     }
 
     // Capture dry input
     for (int ch = 0; ch < numChannels; ++ch)
         dryBuffer.copyFrom(ch, 0, buffer, ch, 0, numSamples);
 
+    // Feed dry audio into transient delay line and compute detection
+    transientRouter.feedDryAudio(dryBuffer.getArrayOfReadPointers(), static_cast<size_t>(numChannels),
+                                 static_cast<size_t>(numSamples));
+
+    // Extract latency-aligned dry audio for phase-coherent dry/wet mixing
+    transientRouter.extractDelayedDry(delayedDryBuffer.getArrayOfWritePointers(), static_cast<size_t>(numChannels),
+                                      static_cast<size_t>(numSamples));
+
     // Process through WSOLA DSP engine
     wsolaEngine.process(dryBuffer.getArrayOfReadPointers(), wetBuffer.getArrayOfWritePointers(),
                         static_cast<size_t>(numChannels), static_cast<size_t>(numSamples));
 
-    // Dry / Wet crossfading and master output gain stage
+    // Blend pitch-shifted WSOLA audio with transient bypass
+    transientRouter.blendOutput(wetBuffer.getArrayOfReadPointers(), blendedBuffer.getArrayOfWritePointers(),
+                                static_cast<size_t>(numChannels), static_cast<size_t>(numSamples));
+
+    // Latency-aligned Dry / Wet crossfading and master output gain stage
     if (!smoothedMix.isSmoothing() && !smoothedGain.isSmoothing())
     {
         const float mix = smoothedMix.getCurrentValue();
@@ -178,8 +222,8 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
 
         for (int ch = 0; ch < numChannels; ++ch)
         {
-            const float *dry = dryBuffer.getReadPointer(ch);
-            const float *wet = wetBuffer.getReadPointer(ch);
+            const float *dry = delayedDryBuffer.getReadPointer(ch);
+            const float *wet = blendedBuffer.getReadPointer(ch);
             float *out = buffer.getWritePointer(ch);
 
             for (int i = 0; i < numSamples; ++i)
@@ -200,8 +244,8 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
 
             for (int ch = 0; ch < numChannels; ++ch)
             {
-                buffer.setSample(ch, i,
-                                 (dryBuffer.getSample(ch, i) * dryGain) + (wetBuffer.getSample(ch, i) * wetGain));
+                buffer.setSample(
+                    ch, i, (delayedDryBuffer.getSample(ch, i) * dryGain) + (blendedBuffer.getSample(ch, i) * wetGain));
             }
         }
     }

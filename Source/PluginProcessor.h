@@ -1,5 +1,6 @@
 #pragma once
 #include "DSP/SmoothedGain.h"
+#include "DSP/TransientBypassRouter.h"
 #include "DSP/WsolaEngine.h"
 #include "Parameters.h"
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -63,6 +64,14 @@ public:
     {
         return gainParam ? gainParam->load() : 0.0f;
     }
+    bool isTransientBypassEnabled() const noexcept
+    {
+        return transientBypassParam == nullptr || transientBypassParam->load() > 0.5f;
+    }
+    float getTransientSensitivity() const noexcept
+    {
+        return transientSensitivityParam ? transientSensitivityParam->load() : 1.8f;
+    }
 
     double getCurrentSampleRate() const noexcept
     {
@@ -77,6 +86,10 @@ public:
     {
         return wsolaEngine;
     }
+    pps::TransientBypassRouter &getTransientRouter() noexcept
+    {
+        return transientRouter;
+    }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
@@ -86,16 +99,21 @@ private:
     std::atomic<float> *fineParam = nullptr;
     std::atomic<float> *mixParam = nullptr;
     std::atomic<float> *gainParam = nullptr;
+    std::atomic<float> *transientBypassParam = nullptr;
+    std::atomic<float> *transientSensitivityParam = nullptr;
 
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;
 
     pps::WsolaEngine wsolaEngine;
+    pps::TransientBypassRouter transientRouter;
     pps::SmoothedGain smoothedMix;
     pps::SmoothedGain smoothedGain;
 
     juce::AudioBuffer<float> dryBuffer;
+    juce::AudioBuffer<float> delayedDryBuffer;
     juce::AudioBuffer<float> wetBuffer;
+    juce::AudioBuffer<float> blendedBuffer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolyPitchShifterAudioProcessor)
 };

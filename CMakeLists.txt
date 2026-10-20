@@ -103,6 +103,12 @@ target_sources(PolyPitchShifter
         Source/DSP/AudioHistoryBuffer.h
         Source/DSP/WsolaEngine.h
         Source/DSP/WsolaEngine.cpp
+        Source/DSP/TransientDetector.h
+        Source/DSP/TransientDetector.cpp
+        Source/DSP/TransientBypassRouter.h
+        Source/DSP/TransientBypassRouter.cpp
+        Source/DSP/AntiAliasingFilter.h
+        Source/DSP/AntiAliasingFilter.cpp
 )
 
 target_include_directories(PolyPitchShifter
@@ -116,6 +122,7 @@ target_include_directories(PolyPitchShifter
 target_compile_definitions(PolyPitchShifter
     PUBLIC
         JUCE_VST3_CAN_REPLACE_VST2=0
+        PPS_TRANSIENT_PRESERVATION_ENABLED=1
 )
 
 target_compile_options(PolyPitchShifter
