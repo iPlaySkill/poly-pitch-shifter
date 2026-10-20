@@ -102,3 +102,19 @@ target_include_directories(AntiAliasingFilterTests PRIVATE ../Source)
 target_compile_features(AntiAliasingFilterTests PRIVATE cxx_std_20)
 
 add_test(NAME AntiAliasingFilterTest COMMAND AntiAliasingFilterTests)
+
+add_executable(ParametersTests
+    ParametersTest.cpp
+    ../Source/Parameters.cpp
+)
+
+target_include_directories(ParametersTests PRIVATE ../Source)
+target_compile_features(ParametersTests PRIVATE cxx_std_20)
+
+target_link_libraries(ParametersTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_core
+)
+
+add_test(NAME ParametersTest COMMAND ParametersTests)
