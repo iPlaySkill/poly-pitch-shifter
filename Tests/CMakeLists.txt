@@ -70,3 +70,13 @@ target_include_directories(WsolaEngineTests PRIVATE ../Source)
 target_compile_features(WsolaEngineTests PRIVATE cxx_std_20)
 
 add_test(NAME WsolaEngineTest COMMAND WsolaEngineTests)
+
+add_executable(TransientDetectorTests
+    TransientDetectorTest.cpp
+    ../Source/DSP/TransientDetector.cpp
+)
+
+target_include_directories(TransientDetectorTests PRIVATE ../Source)
+target_compile_features(TransientDetectorTests PRIVATE cxx_std_20)
+
+add_test(NAME TransientDetectorTest COMMAND TransientDetectorTests)

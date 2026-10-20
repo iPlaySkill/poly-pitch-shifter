@@ -103,6 +103,8 @@ target_sources(PolyPitchShifter
         Source/DSP/AudioHistoryBuffer.h
         Source/DSP/WsolaEngine.h
         Source/DSP/WsolaEngine.cpp
+        Source/DSP/TransientDetector.h
+        Source/DSP/TransientDetector.cpp
 )
 
 target_include_directories(PolyPitchShifter
