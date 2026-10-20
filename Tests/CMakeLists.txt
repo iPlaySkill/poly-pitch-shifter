@@ -150,3 +150,57 @@ target_include_directories(TransientEndToEndTests PRIVATE ../Source)
 target_compile_features(TransientEndToEndTests PRIVATE cxx_std_20)
 
 add_test(NAME TransientEndToEndTest COMMAND TransientEndToEndTests)
+
+add_executable(DspStressTests
+    DspStressTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(DspStressTests PRIVATE ../Source)
+target_compile_features(DspStressTests PRIVATE cxx_std_20)
+
+add_test(NAME DspStressTest COMMAND DspStressTests)
+
+add_executable(PolyphonicGuitarChordTests
+    PolyphonicGuitarChordTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(PolyphonicGuitarChordTests PRIVATE ../Source)
+target_compile_features(PolyphonicGuitarChordTests PRIVATE cxx_std_20)
+
+add_test(NAME PolyphonicGuitarChordTest COMMAND PolyphonicGuitarChordTests)
+
+add_executable(DspBenchmarkTests
+    DspBenchmarkTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(DspBenchmarkTests PRIVATE ../Source)
+target_compile_features(DspBenchmarkTests PRIVATE cxx_std_20)
+
+target_compile_options(DspBenchmarkTests
+    PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/O2 /fp:fast /Oi /Ot>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O3 -ffast-math>
+)
+
+add_test(NAME DspBenchmarkTest COMMAND DspBenchmarkTests)
