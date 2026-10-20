@@ -141,6 +141,46 @@ void TransientBypassRouter::blendOutput(const float *const *wsolaWetChannels, fl
     }
 }
 
+void TransientBypassRouter::extractDelayedDry(float *const *destChannels, size_t numChannels,
+                                              size_t numSamples) const noexcept
+{
+    if (destChannels == nullptr || numSamples == 0 || delayLineCapacity == 0)
+        return;
+
+    const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
+
+    for (size_t ch = 0; ch < channelsToProcess; ++ch)
+    {
+        if (destChannels[ch] == nullptr)
+            continue;
+
+        float *dst = destChannels[ch];
+        const float *delayBuf = dryDelayBuffers[ch].data();
+
+        for (size_t i = 0; i < numSamples; ++i)
+        {
+            const size_t samplesBack = numSamples - i + static_cast<size_t>(alignmentDelaySamples);
+            const size_t readIdx = (writePos + delayLineCapacity - (samplesBack & delayLineMask)) & delayLineMask;
+            dst[i] = delayBuf[readIdx];
+        }
+    }
+}
+
+void TransientBypassRouter::setSensitivity(float sensitivity) noexcept
+{
+    detector.setSensitivity(sensitivity);
+}
+
+void TransientBypassRouter::setHoldTimeMs(float holdMs) noexcept
+{
+    detector.setHoldTimeMs(holdMs);
+}
+
+float TransientBypassRouter::getSensitivity() const noexcept
+{
+    return detector.getSensitivity();
+}
+
 void TransientBypassRouter::process(const float *const *dryChannels, const float *const *wsolaWetChannels,
                                     float *const *outputChannels, size_t numChannels, size_t numSamples) noexcept
 {
