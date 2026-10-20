@@ -80,3 +80,14 @@ target_include_directories(TransientDetectorTests PRIVATE ../Source)
 target_compile_features(TransientDetectorTests PRIVATE cxx_std_20)
 
 add_test(NAME TransientDetectorTest COMMAND TransientDetectorTests)
+
+add_executable(TransientBypassRouterTests
+    TransientBypassRouterTest.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(TransientBypassRouterTests PRIVATE ../Source)
+target_compile_features(TransientBypassRouterTests PRIVATE cxx_std_20)
+
+add_test(NAME TransientBypassRouterTest COMMAND TransientBypassRouterTests)
