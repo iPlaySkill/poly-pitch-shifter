@@ -27,6 +27,10 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
     // Pre-allocate synthesis ring buffers (capacity 16384)
     synthesisBuffer.assign(allocatedChannels, std::vector<float>(16384, 0.0f));
 
+    // Pre-allocate anti-aliasing filter and filtered input buffers
+    antiAliasingFilter.prepare(currentSampleRate, allocatedChannels);
+    filteredInputBuffers.assign(allocatedChannels, std::vector<float>(currentMaxBlock * 4, 0.0f));
+
     // Pre-allocate scratch vectors for audio processing to guarantee zero heap allocation in process()
     channelRefBuffers.assign(allocatedChannels, std::vector<float>(windowSize, 0.0f));
     channelSearchBuffers.assign(allocatedChannels,
@@ -61,6 +65,7 @@ void WsolaEngine::reset() noexcept
 {
     historyBuffer.reset();
     resampler.reset();
+    antiAliasingFilter.reset();
 
     for (auto &buf : synthesisBuffer)
         std::fill(buf.begin(), buf.end(), 0.0f);
@@ -83,6 +88,7 @@ void WsolaEngine::setPitchShift(float semitones, float cents) noexcept
 void WsolaEngine::setPitchRatio(double ratio) noexcept
 {
     targetPitchRatio = std::clamp(ratio, 0.4, 2.5);
+    antiAliasingFilter.updateForPitchRatio(targetPitchRatio);
 }
 
 int WsolaEngine::getLatencyInSamples() const noexcept
@@ -188,8 +194,36 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
         currentPitchRatio = targetPitchRatio;
     }
 
-    // Always push input to history buffer to maintain continuous historical context
-    historyBuffer.write(inputChannels, channelsToProcess, numSamples);
+    // Dynamic anti-aliasing pre-filtering when pitching up (alpha > 1.0)
+    antiAliasingFilter.updateForPitchRatio(currentPitchRatio);
+
+    if (antiAliasingFilter.isFilteringActive())
+    {
+        if (filteredInputBuffers[0].size() < numSamples)
+        {
+            for (auto &buf : filteredInputBuffers)
+                buf.resize(numSamples * 2, 0.0f);
+        }
+
+        float *filteredPtrs[8]{nullptr};
+        const size_t chLimit = std::min(channelsToProcess, size_t(8));
+        for (size_t ch = 0; ch < chLimit; ++ch)
+        {
+            if (inputChannels[ch] != nullptr)
+            {
+                std::copy(inputChannels[ch], inputChannels[ch] + numSamples, filteredInputBuffers[ch].data());
+                filteredPtrs[ch] = filteredInputBuffers[ch].data();
+            }
+        }
+
+        antiAliasingFilter.processBlock(filteredPtrs, chLimit, numSamples);
+        historyBuffer.write(filteredPtrs, chLimit, numSamples);
+    }
+    else
+    {
+        // Always push input to history buffer to maintain continuous historical context
+        historyBuffer.write(inputChannels, channelsToProcess, numSamples);
+    }
 
     // Bit-perfect bypass optimization when pitch ratio is unity
     if (std::abs(currentPitchRatio - 1.0) < 0.0005)
