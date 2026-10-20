@@ -75,6 +75,28 @@ public:
                      size_t numSamples) noexcept;
 
     /**
+     * Extracts latency-aligned dry audio from the internal circular delay buffer.
+     * Useful for host PDC delay compensation and clean, comb-filter-free Dry/Wet mixing.
+     *
+     * @param destChannels Array of destination audio pointers
+     * @param numChannels  Channel count
+     * @param numSamples   Sample count
+     */
+    void extractDelayedDry(float *const *destChannels, size_t numChannels, size_t numSamples) const noexcept;
+
+    /**
+     * Sets transient detection sensitivity (0.1 to 5.0).
+     */
+    void setSensitivity(float sensitivity) noexcept;
+
+    /**
+     * Sets transient hold duration in milliseconds.
+     */
+    void setHoldTimeMs(float holdMs) noexcept;
+
+    [[nodiscard]] float getSensitivity() const noexcept;
+
+    /**
      * Direct single-block processing helper combining feed and blend.
      */
     void process(const float *const *dryChannels, const float *const *wsolaWetChannels, float *const *outputChannels,
