@@ -46,6 +46,31 @@ $$\text{Threshold}[n] = \max\left(B[n] \cdot (1.8 \cdot \text{Sensitivity}), 0.0
 
 При превышении $E[n] > \text{Threshold}[n]$ детектор инициирует транзиентное событие синхронно для всех каналов стереопары, гарантируя сохранность стереопанорамы и фазовой когерентности.
 
+### 3. Фильтр защиты от спектрального наложения (Антиэлайзинг)
+При сдвиге высоты тона вверх на коэффициент $\alpha > 1.0$ (например, на октаву $\alpha = 2.0$) все спектральные составляющие умножаются на $\alpha$. Компоненты, для которых $f \cdot \alpha > F_s / 2$, зеркально отражаются от границы Найквиста назад в слышимый диапазон частот в виде негармонического диссонирующего алиасинга.
+Для полного устранения данного явления применяется каскадный 4-полюсный (4-й порядок, крутизна среза 24 дБ/октава) фильтр Баттерворта в прямой транспонированной форме II (Direct Form II Transposed).
+
+Динамическая частота среза рассчитывается по формуле:
+$$\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$$
+где множитель $0.92$ формирует безопасный переходный диапазон для подавления частот выше Найквиста более чем на 40 дБ.
+
+Добротности двух каскадных звеньев 2-го порядка (биквадратов):
+$$Q_1 = \frac{1}{2 \cos(3\pi / 8)} \approx 0.5411961$$
+$$Q_2 = \frac{1}{2 \cos(\pi / 8)} \approx 1.3065630$$
+
+Билинейное $z$-преобразование с частотной деформацией (Frequency Warping):
+$$K = \tan\left(\frac{\pi f_c}{F_s}\right)$$
+
+### 4. Маршрутизатор байпаса атак и изоэнергетический кроссфейд
+При обнаружении транзиента атаки необработанный чистый сигнал задерживается в циклическом буфере ровно на величину алгоритмической задержки WSOLA $D = W + \Delta + H$ для сэмпловой синхронизации.
+Для предотвращения провалов мощности и щелчков при переключении между чистой атакой и питч-шифтированным сустейном применяется изоэнергетический косинусный кроссфейд:
+
+$$g_{\text{transient}} = \sin\left(\text{mask} \cdot \frac{\pi}{2}\right)$$
+$$g_{\text{wet}} = \cos\left(\text{mask} \cdot \frac{\pi}{2}\right)$$
+$$g_{\text{transient}}^2 + g_{\text{wet}}^2 = \sin^2\left(\frac{\pi}{2}\text{mask}\right) + \cos^2\left(\frac{\pi}{2}\text{mask}\right) \equiv 1.0$$
+
+Суммарная акустическая мощность сохраняется строго инвариантной при любых переходных процессах.
+
 ---
 
 ## [ENG] English Transient Processing Specification
@@ -90,3 +115,28 @@ $$B[n] = (1 - \alpha_{\text{bg}}) \cdot B[n-1] + \alpha_{\text{bg}} \cdot E[n]$$
 $$\text{Threshold}[n] = \max\left(B[n] \cdot (1.8 \cdot \text{Sensitivity}), 0.002\right)$$
 
 When $E[n] > \text{Threshold}[n]$, an attack transient is triggered across stereo channels simultaneously to maintain perfect phase coherence.
+
+### 3. Anti-Aliasing Filter Synthesis and Dynamic Nyquist Tracking
+When shifting pitch up by a ratio $\alpha > 1.0$ (e.g. $+12$ semitones, $\alpha = 2.0$), high frequency spectral components are expanded by factor $\alpha$. Any frequency originally satisfying $f \cdot \alpha > F_s / 2$ would alias back down into the audible spectrum.
+To prevent aliasing distortion, a 4th-order (24 dB/octave) Butterworth lowpass filter in Direct Form II Transposed is cascaded:
+
+$$\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$$
+
+where the $0.92$ factor creates a guard band ensuring $> 40\text{ dB}$ stopband rejection above Nyquist.
+
+Butterworth Q factors:
+$$Q_1 = \frac{1}{2 \cos(3\pi / 8)} \approx 0.5411961$$
+$$Q_2 = \frac{1}{2 \cos(\pi / 8)} \approx 1.3065630$$
+
+Bilinear transform with pre-warping:
+$$K = \tan\left(\frac{\pi f_c}{F_s}\right)$$
+
+### 4. Transient Bypass Router and Equal-Power Cosine Crossfade
+Upon transient detection, clean unshifted audio is delayed in a circular buffer by exactly the WSOLA algorithmic latency $D = W + \Delta + H$ to ensure sample-accurate alignment.
+An equal-power cosine crossfade prevents energy dips and switching clicks:
+
+$$g_{\text{transient}} = \sin\left(\text{mask} \cdot \frac{\pi}{2}\right)$$
+$$g_{\text{wet}} = \cos\left(\text{mask} \cdot \frac{\pi}{2}\right)$$
+$$g_{\text{transient}}^2 + g_{\text{wet}}^2 = \sin^2\left(\frac{\pi}{2}\text{mask}\right) + \cos^2\left(\frac{\pi}{2}\text{mask}\right) \equiv 1.0$$
+
+Acoustic energy is conserved throughout the entire transition.
