@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AntiAliasingFilter.h"
 #include "AudioHistoryBuffer.h"
 #include "CrossCorrelationFinder.h"
 #include "HermiteResampler.h"
@@ -70,6 +71,16 @@ public:
         return currentPitchRatio;
     }
 
+    [[nodiscard]] const AntiAliasingFilter &getAntiAliasingFilter() const noexcept
+    {
+        return antiAliasingFilter;
+    }
+
+    [[nodiscard]] AntiAliasingFilter &getAntiAliasingFilter() noexcept
+    {
+        return antiAliasingFilter;
+    }
+
 private:
     void updateWindowAndHopSizes();
     void processWsolaFrame() noexcept;
@@ -92,6 +103,7 @@ private:
     AudioHistoryBuffer historyBuffer;
     CrossCorrelationFinder correlationFinder;
     HermiteResampler resampler;
+    AntiAliasingFilter antiAliasingFilter;
     std::vector<float> hannWindow;
 
     // Synthesis overlap-add buffers (per channel)
@@ -105,6 +117,7 @@ private:
     std::vector<std::vector<float>> grainBuffers;
     std::vector<std::vector<float>> resampledOutputBuffers;
     std::vector<float> contiguousSynthBuffer;
+    std::vector<std::vector<float>> filteredInputBuffers;
 
     // WSOLA tracking state
     int64_t lastBestOffset = 0;
