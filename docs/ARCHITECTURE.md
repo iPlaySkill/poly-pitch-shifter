@@ -1,4 +1,5 @@
 # PolyPitchShifter Architecture Specification
+# Архитектурная спецификация PolyPitchShifter
 
 ---
 
@@ -13,10 +14,45 @@
 - **Подавление денормализованных чисел (Denormal Prevention):** В начале каждого блока `processBlock` создается экземпляр `juce::ScopedNoDenormals` для отключения штрафов производительности процессора при вычислениях с околонулевыми числами с плавающей запятой на x86/x64.
 
 ### 2. Структура директорий и границы модулей
-- `Source/DSP/`: Модули цифровой обработки сигналов (ядро WSOLA с алгоритмом сложения с перекрытием, циклические буферы предыстории, сплайновые ресэмплеры Эрмита, фильтры антиэлайзинга, блок отслеживания энергии атак транзиентов).
+- `Source/DSP/`: Модули цифровой обработки сигналов:
+  - `WsolaEngine`: Математическое ядро WSOLA (Waveform Similarity Based Overlap-Add) со стереофонической фазовой синхронизацией.
+  - `TransientDetector`: Высокочастотный дифференцирующий детектор транзиентных атак медиатора.
+  - `TransientBypassRouter`: Маршрутизатор задержки чистого сигнала с изоэнергетическим косинусным кроссфейдом.
+  - `AntiAliasingFilter`: Каскадный 4-полюсный фильтр Баттерворта Direct Form II Transposed для подавления алиасинга при повышении тона.
+  - `HermiteResampler`: 4-точечный кубический сплайн-ресэмплер 3-го порядка.
+  - `AudioHistoryBuffer`: Кольцевой буфер предыстории с битовой маской степени двойки.
+  - `CrossCorrelationFinder`: Поиск корреляции подобия с субсэмпловой параболической интерполяцией.
+  - `Windowing`: Генерация и наложение оконных функций Хеннинга, Хэмминга, Блэкмана-Харриса.
+  - `SmoothedGain`: Фильтр сглаживания параметров без артефактов (zipper noise).
 - `Source/GUI/`: Пользовательский векторный интерфейс, кастомные поворотные регуляторы, LookAndFeel, осциллограф формы волны и измерители уровней.
 - `Source/Utils/`: Высокопроизводительные неблокирующие структуры данных (`RingBuffer`, FIFO очереди).
-- `Tests/`: Набор модульных и интеграционных тестов для верификации алгоритмов.
+- `Tests/`: Комплекс модульных, стресс- и бенчмарк-тестов.
+
+### 3. Схема прохождения сигнала (Signal Flow)
+```mermaid
+graph TD
+    IN["Входной аудиосигнал (Input Buffer)"] --> DET["TransientDetector (Дифференциатор + Огибатель)"]
+    IN --> DELAY["Transient Delay Line (Задержка на D = W + Δ + H)"]
+    IN --> AAF["AntiAliasingFilter (Срез при α > 1.0)"]
+    AAF --> WSOLA["WsolaEngine (Полифонический сдвиг тона)"]
+    
+    DET -->|"Активация атаки (Mask)"| ROUTER{"TransientBypassRouter (Изоэнергетический кроссфейд)"}
+    DELAY -->|"Чистая задержанная атака"| ROUTER
+    WSOLA -->|"Питч-шифтированный сустейн"| ROUTER
+    
+    ROUTER --> BLEND["Смешанный сигнал (Blended Wet)"]
+    DELAY -->|"Фазово-выровненный сухой сигнал"| MIX["Dry / Wet Crossfader (SmoothedGain)"]
+    BLEND --> MIX
+    MIX --> GAIN["Master Output Gain (-24..+12 dB)"]
+    GAIN --> OUT["Выходной аудиосигнал (DAW Output)"]
+```
+
+### 4. Компенсация задержки плагина (PDC)
+Плагин вносит постоянную алгоритмическую задержку $D_{\text{algo}}$, равную сумме окна анализа $W$, максимального поискового смещения $\Delta$ и шага синтеза $H$:
+$$D_{\text{algo}} = W + \Delta + H$$
+- При $F_s = 48\text{ кГц}$: $512 + 128 + 256 = 896\text{ сэмплов}$ ($18.67\text{ мс}$).
+- При $F_s = 96\text{ кГц}$: $1024 + 256 + 512 = 1792\text{ сэмпла}$ ($18.67\text{ мс}$).
+Задержка передается в DAW через `setLatencySamples()`, что позволяет хосту компенсировать временной сдвиг остальных дорожек проекта с точностью до сэмпла.
 
 ---
 
@@ -31,7 +67,42 @@ Real-time audio processing callbacks (`processBlock`) operate under strict time 
 - **Denormal Prevention:** `juce::ScopedNoDenormals` is instantiated at the entry of `processBlock` to disable subnormal floating-point processing overhead on x86/x64 CPUs.
 
 ### 2. Directory Structure and Module Boundaries
-- `Source/DSP/`: Digital signal processing algorithms (WSOLA overlap-add engine, circular history buffers, spline resamplers, anti-aliasing filters, transient energy trackers).
+- `Source/DSP/`: Digital signal processing algorithms:
+  - `WsolaEngine`: WSOLA overlap-add core with stereo phase alignment.
+  - `TransientDetector`: Differentiating high-frequency pick attack detector.
+  - `TransientBypassRouter`: Latency-aligned circular delay line and equal-power crossfader.
+  - `AntiAliasingFilter`: Direct Form II Transposed 4th-order Butterworth filter.
+  - `HermiteResampler`: 4-point 3rd-order cubic spline resampler.
+  - `AudioHistoryBuffer`: Power-of-two lookback ring buffer.
+  - `CrossCorrelationFinder`: Waveform similarity engine with parabolic sub-sample refinement.
+  - `Windowing`: Hann, Hamming, and Blackman-Harris window generators.
+  - `SmoothedGain`: Zipper-noise-free parameter smoothing filter.
 - `Source/GUI/`: Custom vector UI components, rotary knobs, LookAndFeel, waveform visualizers, and level meters.
 - `Source/Utils/`: High-performance lock-free data structures (`RingBuffer`, FIFO queues).
-- `Tests/`: Unit tests and algorithmic verification suites.
+- `Tests/`: Unit tests, stress tests, and real-time benchmark suites.
+
+### 3. End-to-End Signal Flow Architecture
+```mermaid
+graph TD
+    IN["Input Buffer"] --> DET["TransientDetector (Differentiator + Envelope)"]
+    IN --> DELAY["Transient Delay Line (Delayed by D = W + Δ + H)"]
+    IN --> AAF["AntiAliasingFilter (Cutoff when α > 1.0)"]
+    AAF --> WSOLA["WsolaEngine (Polyphonic Pitch Shift)"]
+    
+    DET -->|"Attack Mask"| ROUTER{"TransientBypassRouter (Equal-Power Crossfade)"}
+    DELAY -->|"Aligned Dry Transient"| ROUTER
+    WSOLA -->|"Pitch-Shifted Sustain"| ROUTER
+    
+    ROUTER --> BLEND["Blended Wet Signal"]
+    DELAY -->|"Phase-Aligned Dry Signal"| MIX["Dry / Wet Crossfader (SmoothedGain)"]
+    BLEND --> MIX
+    MIX --> GAIN["Master Output Gain (-24..+12 dB)"]
+    GAIN --> OUT["DAW Output"]
+```
+
+### 4. Plug-in Delay Compensation (PDC)
+The plugin introduces deterministic algorithmic latency $D_{\text{algo}}$ defined by:
+$$D_{\text{algo}} = W + \Delta + H$$
+- At $F_s = 48\text{ kHz}$: $512 + 128 + 256 = 896\text{ samples}$ ($18.67\text{ ms}$).
+- At $F_s = 96\text{ kHz}$: $1024 + 256 + 512 = 1792\text{ samples}$ ($18.67\text{ ms}$).
+Latency is reported to the host DAW via `setLatencySamples()`, ensuring sample-accurate project-wide track synchronization.
