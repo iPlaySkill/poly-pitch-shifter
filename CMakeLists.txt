@@ -122,6 +122,7 @@ target_include_directories(PolyPitchShifter
 target_compile_definitions(PolyPitchShifter
     PUBLIC
         JUCE_VST3_CAN_REPLACE_VST2=0
+        PPS_TRANSIENT_PRESERVATION_ENABLED=1
 )
 
 target_compile_options(PolyPitchShifter
