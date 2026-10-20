@@ -55,7 +55,8 @@ public:
     [[nodiscard]] bool isFilteringActive() const noexcept
     {
         const float maxOpenPassband = static_cast<float>(std::min(20000.0, currentSampleRate * 0.45));
-        return currentCutoff < (maxOpenPassband - 100.0f);
+        const float threshold = maxOpenPassband - 100.0f;
+        return (targetCutoff < threshold) || (currentCutoff < threshold);
     }
 
 private:
