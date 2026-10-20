@@ -95,6 +95,31 @@ int main()
         assert(detector.isAttackActive());
     }
 
+    // 5. Telemetry queries and decay phase verification
+    {
+        pps::TransientDetector detector;
+        detector.prepare(48000.0, 1);
+        detector.setHoldTimeMs(2.0f);
+
+        float impulse[1] = {0.95f};
+        detector.processSample(impulse, 1);
+        assert(detector.isAttackActive());
+        assert(!detector.isDecayActive());
+
+        // Step through hold phase
+        for (int i = 0; i < 96; ++i)
+        {
+            float quiet[1] = {0.0f};
+            detector.processSample(quiet, 1);
+        }
+
+        // Entering decay phase
+        if (detector.isDecayActive())
+        {
+            assert(detector.getDecaySamplesRemaining() > 0);
+        }
+    }
+
     std::cout << "[PASSED] TransientDetectorTest succeeded." << std::endl;
     return 0;
 }
