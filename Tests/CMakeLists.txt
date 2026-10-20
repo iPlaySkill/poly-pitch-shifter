@@ -63,6 +63,7 @@ add_executable(WsolaEngineTests
     ../Source/DSP/HermiteResampler.cpp
     ../Source/DSP/Windowing.cpp
     ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
     ../Source/DSP/WsolaEngine.cpp
 )
 
