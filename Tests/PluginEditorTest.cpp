@@ -39,6 +39,15 @@ int main()
         juce::Graphics g(image);
         editor.paintEntireComponent(g, true);
         assert(image.isValid());
+
+        juce::File outputFile("build/editor_preview.png");
+        outputFile.deleteFile();
+        juce::FileOutputStream stream(outputFile);
+        if (stream.openedOk())
+        {
+            juce::PNGImageFormat png;
+            png.writeImageToStream(image, stream);
+        }
     }
 
     std::cout << "  Passed: PolyPitchShifterAudioProcessorEditor creation, responsive layouts, and headless rendering verified." << std::endl;
