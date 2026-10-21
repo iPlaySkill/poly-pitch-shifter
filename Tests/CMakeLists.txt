@@ -224,3 +224,23 @@ target_link_libraries(CustomLookAndFeelTests
 )
 
 add_test(NAME CustomLookAndFeelTest COMMAND CustomLookAndFeelTests)
+
+add_executable(RotaryKnobTests
+    RotaryKnobTest.cpp
+    ../Source/GUI/RotaryKnob.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+)
+
+target_include_directories(RotaryKnobTests PRIVATE ../Source)
+target_compile_features(RotaryKnobTests PRIVATE cxx_std_20)
+
+target_link_libraries(RotaryKnobTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME RotaryKnobTest COMMAND RotaryKnobTests)
+
