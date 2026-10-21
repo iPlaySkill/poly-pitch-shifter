@@ -81,6 +81,22 @@ public:
         return antiAliasingFilter;
     }
 
+    /**
+     * Enables or disables transient clarity / attack synchronization.
+     */
+    void setTransientClarityEnabled(bool enabled) noexcept
+    {
+        transientClarityEnabled = enabled;
+    }
+
+    /**
+     * Notifies the engine of an active transient attack onset.
+     */
+    void setTransientOnset(bool isOnset) noexcept
+    {
+        transientOnset = isOnset;
+    }
+
 private:
     void updateWindowAndHopSizes();
     void processWsolaFrame() noexcept;
@@ -123,6 +139,8 @@ private:
     int64_t lastBestOffset = 0;
     double nominalAnalysisPos = 0.0;
     bool isFirstFrame = true;
+    bool transientClarityEnabled = true;
+    bool transientOnset = false;
 };
 
 } // namespace pps

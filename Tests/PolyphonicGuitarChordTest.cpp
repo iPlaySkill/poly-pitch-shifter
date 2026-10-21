@@ -108,12 +108,80 @@ void testEMajorChordOctaveUp()
     std::cout << "  Passed: Polyphonic 6-string chord processed cleanly (peak amplitude = " << peakOut << ").\n";
 }
 
+void testPitchDirectionAndContinuity()
+{
+    std::cout << "[Test] PolyphonicGuitarChordTest: Pitch Direction and Phase Continuity (+12st / -12st)...\n";
+    const double sampleRate = 48000.0;
+    const size_t blockSize = 256;
+    const size_t numChannels = 2;
+
+    auto measureFrequency = [&](float semitones) -> double {
+        pps::WsolaEngine wsola;
+        wsola.prepare(sampleRate, blockSize, numChannels);
+        wsola.setPitchShift(semitones, 0.0f);
+
+        std::vector<float> inL(blockSize, 0.0f);
+        std::vector<float> inR(blockSize, 0.0f);
+        std::vector<float> outL(blockSize, 0.0f);
+        std::vector<float> outR(blockSize, 0.0f);
+        const float *inPtrs[2] = {inL.data(), inR.data()};
+        float *outPtrs[2] = {outL.data(), outR.data()};
+
+        const double inFreq = 200.0;
+        int zeroCrossings = 0;
+        float prevSample = 0.0f;
+        int measuredBlocks = 0;
+
+        // Process 100 blocks (~0.53 seconds)
+        for (int b = 0; b < 100; ++b)
+        {
+            for (size_t i = 0; i < blockSize; ++i)
+            {
+                const double t = static_cast<double>(b * blockSize + i) / sampleRate;
+                inL[i] = static_cast<float>(std::sin(2.0 * kPi * inFreq * t));
+                inR[i] = inL[i];
+            }
+
+            wsola.process(inPtrs, outPtrs, numChannels, blockSize);
+
+            // Skip initial latency transient before measuring frequency
+            if (b >= 20)
+            {
+                ++measuredBlocks;
+                for (size_t i = 0; i < blockSize; ++i)
+                {
+                    if (prevSample <= 0.0f && outL[i] > 0.0f)
+                    {
+                        ++zeroCrossings;
+                    }
+                    prevSample = outL[i];
+                }
+            }
+        }
+
+        const double totalSeconds = static_cast<double>(measuredBlocks * blockSize) / sampleRate;
+        return static_cast<double>(zeroCrossings) / totalSeconds;
+    };
+
+    const double freqUp = measureFrequency(12.0f);
+    const double freqDown = measureFrequency(-12.0f);
+
+    std::cout << "  Passed: +12 st measured frequency = " << freqUp << " Hz (expected ~400 Hz)\n";
+    std::cout << "  Passed: -12 st measured frequency = " << freqDown << " Hz (expected ~100 Hz)\n";
+
+    // Verify correct pitch direction: +12 st raises frequency, -12 st lowers frequency!
+    assert(freqUp > 360.0 && freqUp < 440.0);
+    assert(freqDown > 80.0 && freqDown < 120.0);
+    assert(freqUp > freqDown * 3.0); // +12 st is 4x higher than -12 st!
+}
+
 } // namespace
 
 int main()
 {
     std::cout << "=== Running Polyphonic Guitar Chord Tests ===\n";
     testEMajorChordOctaveUp();
+    testPitchDirectionAndContinuity();
     std::cout << "=== All Polyphonic Guitar Chord Tests Passed Successfully ===\n";
     return 0;
 }

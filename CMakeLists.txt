@@ -94,6 +94,22 @@ target_sources(PolyPitchShifter
         Source/PluginEditor.cpp
         Source/Parameters.h
         Source/Parameters.cpp
+        Source/GUI/GuiTokens.h
+        Source/GUI/CustomLookAndFeel.h
+        Source/GUI/CustomLookAndFeel.cpp
+        Source/GUI/RotaryKnob.h
+        Source/GUI/RotaryKnob.cpp
+        Source/GUI/PillToggle.h
+        Source/GUI/PillToggle.cpp
+        Source/GUI/ControlPanel.h
+        Source/GUI/ControlPanel.cpp
+        Source/GUI/VisualizerBuffer.h
+        Source/GUI/LevelMeter.h
+        Source/GUI/LevelMeter.cpp
+        Source/GUI/WaveformVisualizer.h
+        Source/GUI/WaveformVisualizer.cpp
+        Source/GUI/SpectrumVisualizer.h
+        Source/GUI/SpectrumVisualizer.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h

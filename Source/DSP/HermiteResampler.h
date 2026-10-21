@@ -66,12 +66,23 @@ public:
      */
     static void resampleBlock(const float *input, size_t inputSamples, float *output, size_t outputSamples) noexcept;
 
+    [[nodiscard]] size_t getLastConsumedSamples(size_t channelIndex = 0) const noexcept
+    {
+        return (channelIndex < channelStates.size()) ? channelStates[channelIndex].lastConsumedSamples : 0;
+    }
+
+    [[nodiscard]] double getFractionalPhase(size_t channelIndex = 0) const noexcept
+    {
+        return (channelIndex < channelStates.size()) ? channelStates[channelIndex].fractionalPhase : 0.0;
+    }
+
 private:
     struct ChannelState
     {
         float history[4]{0.0f, 0.0f, 0.0f, 0.0f}; // ym1, y0, y1, y2
         double fractionalPhase = 0.0;
         size_t inputReadPos = 0;
+        size_t lastConsumedSamples = 0;
     };
 
     std::vector<ChannelState> channelStates;

@@ -21,6 +21,7 @@ void HermiteResampler::reset() noexcept
         state.history[3] = 0.0f;
         state.fractionalPhase = 0.0;
         state.inputReadPos = 0;
+        state.lastConsumedSamples = 0;
     }
 }
 
@@ -68,17 +69,20 @@ size_t HermiteResampler::processChannel(const float *input, size_t inputSamples,
         phase += ratio;
     }
 
-    // Update history for next block
-    if (inputSamples >= 4)
+    // Number of integer input samples completely traversed
+    const auto consumed = static_cast<size_t>(std::max(0.0, std::floor(phase)));
+
+    // Update history for next block ending exactly at input[consumed - 1]
+    if (consumed >= 4)
     {
-        state.history[0] = input[inputSamples - 4];
-        state.history[1] = input[inputSamples - 3];
-        state.history[2] = input[inputSamples - 2];
-        state.history[3] = input[inputSamples - 1];
+        state.history[0] = input[consumed - 4];
+        state.history[1] = input[consumed - 3];
+        state.history[2] = input[consumed - 2];
+        state.history[3] = input[consumed - 1];
     }
-    else
+    else if (consumed > 0)
     {
-        for (size_t i = 0; i < inputSamples; ++i)
+        for (size_t i = 0; i < consumed; ++i)
         {
             state.history[0] = state.history[1];
             state.history[1] = state.history[2];
@@ -87,12 +91,15 @@ size_t HermiteResampler::processChannel(const float *input, size_t inputSamples,
         }
     }
 
-    // Keep residual phase for seamless block continuation
-    state.fractionalPhase = phase - static_cast<double>(inputSamples);
+    // Keep residual sub-sample phase strictly in [0.0, 1.0) for seamless Catmull-Rom continuation
+    state.fractionalPhase = phase - static_cast<double>(consumed);
     if (state.fractionalPhase < 0.0)
         state.fractionalPhase = 0.0;
+    else if (state.fractionalPhase >= 1.0)
+        state.fractionalPhase = 0.0;
 
-    return outIndex;
+    state.lastConsumedSamples = consumed;
+    return consumed;
 }
 
 void HermiteResampler::resampleBlock(const float *input, size_t inputSamples, float *output,

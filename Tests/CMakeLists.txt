@@ -207,3 +207,217 @@ target_compile_options(DspBenchmarkTests
 )
 
 add_test(NAME DspBenchmarkTest COMMAND DspBenchmarkTests)
+
+add_executable(CustomLookAndFeelTests
+    CustomLookAndFeelTest.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+)
+
+target_include_directories(CustomLookAndFeelTests PRIVATE ../Source)
+target_compile_features(CustomLookAndFeelTests PRIVATE cxx_std_20)
+
+target_link_libraries(CustomLookAndFeelTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME CustomLookAndFeelTest COMMAND CustomLookAndFeelTests)
+
+add_executable(RotaryKnobTests
+    RotaryKnobTest.cpp
+    ../Source/GUI/RotaryKnob.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+)
+
+target_include_directories(RotaryKnobTests PRIVATE ../Source)
+target_compile_features(RotaryKnobTests PRIVATE cxx_std_20)
+
+target_link_libraries(RotaryKnobTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME RotaryKnobTest COMMAND RotaryKnobTests)
+
+add_executable(PillToggleTests
+    PillToggleTest.cpp
+    ../Source/GUI/PillToggle.cpp
+)
+
+target_include_directories(PillToggleTests PRIVATE ../Source)
+target_compile_features(PillToggleTests PRIVATE cxx_std_20)
+
+target_link_libraries(PillToggleTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME PillToggleTest COMMAND PillToggleTests)
+
+add_executable(ControlPanelTests
+    ControlPanelTest.cpp
+    ../Source/GUI/ControlPanel.cpp
+)
+
+target_include_directories(ControlPanelTests PRIVATE ../Source)
+target_compile_features(ControlPanelTests PRIVATE cxx_std_20)
+
+target_link_libraries(ControlPanelTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME ControlPanelTest COMMAND ControlPanelTests)
+
+add_executable(VisualizerBufferTests
+    VisualizerBufferTest.cpp
+)
+
+target_include_directories(VisualizerBufferTests PRIVATE ../Source)
+target_compile_features(VisualizerBufferTests PRIVATE cxx_std_20)
+
+add_test(NAME VisualizerBufferTest COMMAND VisualizerBufferTests)
+
+add_executable(LevelMeterTests
+    LevelMeterTest.cpp
+    ../Source/GUI/LevelMeter.cpp
+)
+
+target_include_directories(LevelMeterTests PRIVATE ../Source)
+target_compile_features(LevelMeterTests PRIVATE cxx_std_20)
+
+target_link_libraries(LevelMeterTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME LevelMeterTest COMMAND LevelMeterTests)
+
+add_executable(WaveformVisualizerTests
+    WaveformVisualizerTest.cpp
+    ../Source/GUI/WaveformVisualizer.cpp
+)
+
+target_include_directories(WaveformVisualizerTests PRIVATE ../Source)
+target_compile_features(WaveformVisualizerTests PRIVATE cxx_std_20)
+
+target_link_libraries(WaveformVisualizerTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME WaveformVisualizerTest COMMAND WaveformVisualizerTests)
+
+add_executable(SpectrumVisualizerTests
+    SpectrumVisualizerTest.cpp
+    ../Source/GUI/SpectrumVisualizer.cpp
+)
+
+target_include_directories(SpectrumVisualizerTests PRIVATE ../Source)
+target_compile_features(SpectrumVisualizerTests PRIVATE cxx_std_20)
+
+target_link_libraries(SpectrumVisualizerTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME SpectrumVisualizerTest COMMAND SpectrumVisualizerTests)
+
+add_executable(VisualizerIntegrationTests
+    VisualizerIntegrationTest.cpp
+    ../Source/PluginProcessor.cpp
+    ../Source/PluginEditor.cpp
+    ../Source/Parameters.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+    ../Source/GUI/RotaryKnob.cpp
+    ../Source/GUI/PillToggle.cpp
+    ../Source/GUI/ControlPanel.cpp
+    ../Source/GUI/LevelMeter.cpp
+    ../Source/GUI/WaveformVisualizer.cpp
+    ../Source/GUI/SpectrumVisualizer.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(VisualizerIntegrationTests PRIVATE ../Source)
+target_compile_features(VisualizerIntegrationTests PRIVATE cxx_std_20)
+
+target_link_libraries(VisualizerIntegrationTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_events
+        juce::juce_core
+        juce::juce_data_structures
+        juce::juce_audio_basics
+)
+
+add_test(NAME VisualizerIntegrationTest COMMAND VisualizerIntegrationTests)
+
+add_executable(PluginEditorTests
+    PluginEditorTest.cpp
+    ../Source/PluginProcessor.cpp
+    ../Source/PluginEditor.cpp
+    ../Source/Parameters.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+    ../Source/GUI/RotaryKnob.cpp
+    ../Source/GUI/PillToggle.cpp
+    ../Source/GUI/ControlPanel.cpp
+    ../Source/GUI/LevelMeter.cpp
+    ../Source/GUI/WaveformVisualizer.cpp
+    ../Source/GUI/SpectrumVisualizer.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(PluginEditorTests PRIVATE ../Source)
+target_compile_features(PluginEditorTests PRIVATE cxx_std_20)
+
+target_link_libraries(PluginEditorTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_events
+        juce::juce_core
+        juce::juce_data_structures
+        juce::juce_audio_basics
+)
+
+add_test(NAME PluginEditorTest COMMAND PluginEditorTests)
+
+
+
+
+
+
+
+
+

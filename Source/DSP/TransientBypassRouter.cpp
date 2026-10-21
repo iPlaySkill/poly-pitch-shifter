@@ -91,52 +91,11 @@ void TransientBypassRouter::blendOutput(const float *const *wsolaWetChannels, fl
 
     const size_t channelsToProcess = std::min(numChannels, allocatedChannels);
 
-    // If transient bypass is disabled, pass WSOLA wet signal directly
-    if (!isBypassEnabled)
-    {
-        for (size_t ch = 0; ch < channelsToProcess; ++ch)
-        {
-            if (wsolaWetChannels[ch] != nullptr && outputChannels[ch] != nullptr)
-            {
-                std::copy(wsolaWetChannels[ch], wsolaWetChannels[ch] + numSamples, outputChannels[ch]);
-            }
-        }
-        return;
-    }
-
-    constexpr float halfPi = 1.57079632679489661923f;
-
     for (size_t ch = 0; ch < channelsToProcess; ++ch)
     {
-        if (wsolaWetChannels[ch] == nullptr || outputChannels[ch] == nullptr)
-            continue;
-
-        const float *wet = wsolaWetChannels[ch];
-        const float *delayBuf = dryDelayBuffers[ch].data();
-        float *out = outputChannels[ch];
-
-        for (size_t i = 0; i < numSamples; ++i)
+        if (wsolaWetChannels[ch] != nullptr && outputChannels[ch] != nullptr)
         {
-            const float mask = activationMask[i];
-
-            if (mask <= 0.0001f)
-            {
-                out[i] = wet[i];
-            }
-            else
-            {
-                // Equal-power crossfade between delayed dry transient and WSOLA wet audio
-                const float angle = mask * halfPi;
-                const float gTransient = std::sin(angle);
-                const float gWet = std::cos(angle);
-
-                // Sample delayed dry audio at writePos - numSamples + i - alignmentDelaySamples
-                const size_t samplesBack = numSamples - i + static_cast<size_t>(alignmentDelaySamples);
-                const size_t readIdx = (writePos + delayLineCapacity - (samplesBack & delayLineMask)) & delayLineMask;
-                const float dryDelayedSample = delayBuf[readIdx];
-
-                out[i] = (dryDelayedSample * gTransient) + (wet[i] * gWet);
-            }
+            std::copy(wsolaWetChannels[ch], wsolaWetChannels[ch] + numSamples, outputChannels[ch]);
         }
     }
 }

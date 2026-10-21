@@ -15,6 +15,8 @@ PolyPitchShifter разработан для задач гитарного тр�
 - **Диапазон транспонирования:** от -12 до +12 полутонов с плавной микротональной подстройкой (от -50 до +50 центов).
 - **Сохранение динамических атак (Transient Preservation):** дифференцирующий детектор энергетического потока и маршрутизатор байпаса с косинусным изоэнергетическим кроссфейдом ($\sin^2 + \cos^2 \equiv 1.0$) сохраняют естественный щелчок медиатора без смазывания.
 - **Динамический фильтр антиэлайзинга (Anti-Aliasing):** каскадный 4-полюсный фильтр Баттерворта 4-го порядка с автоматическим отслеживанием границы Найквиста подавляет зеркальные спектральные отражения при сдвиге тона вверх.
+- **Профессиональный векторный UI/UX (60 FPS):** студийная обсидиановая тема (`GuiTokens`), векторные дуговые регуляторы с биполярным рендерингом, аппаратные переключатели-пилюли, двухканальный осциллограф реального времени с янтарным стробоскопом атак медиатора, 1024-точечный спектроанализатор с динамическим маркером среза антиэлайзинга и стерео Peak/RMS индикатор уровня.
+- **Потокобезопасная телеметрия без блокировок:** неблокирующий кольцевой SPSC FIFO (`VisualizerBuffer`) передает данные на графический интерфейс с нулевым влиянием на поток обработки звука.
 - **Прецизионная компенсация задержки (PDC):** сэмплово-точное информирование DAW о задержке плагина через `setLatencySamples()`.
 - **Экстремальная производительность:** скорость обработки более **440x** быстрее реального времени при загрузке 1 ядра процессора всего **0.22%**.
 - **Безопасность аудиопотока:** нулевые выделения памяти в куче (`malloc`/`new`) в `processBlock` и аппаратное подавление денормалов.
@@ -55,6 +57,8 @@ PolyPitchShifter is designed for real-time guitar transposing, drop tuning, and 
 - **Pitch Shift Range:** -12 to +12 semitones with continuous precision fine-tuning (-50 to +50 cents).
 - **Transient Preservation:** High-frequency energy flux detector and circular delay line bypass router with equal-power cosine crossfading ($\sin^2 + \cos^2 \equiv 1.0$) for transparent pick attack clarity.
 - **Dynamic Anti-Aliasing Filter:** Cascaded 4th-order Butterworth lowpass filter in Direct Form II Transposed with dynamic Nyquist guard band tracking to eliminate spectral mirroring when pitching up.
+- **Pro Vector UI/UX (60 FPS):** Modern obsidian studio aesthetic (`GuiTokens`), vector rotary knobs with dynamic glow arcs and bipolar rendering, illuminated pill switches, real-time dual waveform oscilloscope with transient amber strobe flash, 1024-point FFT spectrum analyzer with dynamic anti-aliasing cutoff indicator, and stereo Peak/RMS meter with clip hold.
+- **Lock-Free Audio Telemetry:** Single-Producer Single-Consumer (SPSC) circular FIFO (`VisualizerBuffer`) streaming telemetry to GUI at 60 FPS with zero heap allocations and zero mutex locks.
 - **Precision Latency Compensation (PDC):** Sample-accurate algorithmic latency reporting to host DAW via `setLatencySamples()`.
 - **Extreme Performance:** Over **440x** faster than real-time execution with only **0.22%** single-core CPU utilization.
 - **Audio Thread Safety:** Guaranteed zero heap allocations (`malloc`/`new`) in `processBlock` and hardware denormal prevention.
