@@ -32,9 +32,9 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
     filteredInputBuffers.assign(allocatedChannels, std::vector<float>(currentMaxBlock * 4, 0.0f));
 
     // Pre-allocate scratch vectors for audio processing to guarantee zero heap allocation in process()
+    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset) + hopSize;
     channelRefBuffers.assign(allocatedChannels, std::vector<float>(windowSize, 0.0f));
-    channelSearchBuffers.assign(allocatedChannels,
-                                std::vector<float>(windowSize + 2 * static_cast<size_t>(maxSearchOffset), 0.0f));
+    channelSearchBuffers.assign(allocatedChannels, std::vector<float>(searchLen, 0.0f));
     grainBuffers.assign(allocatedChannels, std::vector<float>(windowSize, 0.0f));
     resampledOutputBuffers.assign(allocatedChannels, std::vector<float>(currentMaxBlock * 4, 0.0f));
     contiguousSynthBuffer.assign(currentMaxBlock * 8 + windowSize * 4, 0.0f);
@@ -44,20 +44,21 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Optimized for low-latency live guitar performance:
-    // 256 samples at 48 kHz = 5.33 ms (hop = 128 = 2.67 ms)
-    // 512 samples at 96 kHz = 5.33 ms (hop = 256 = 2.67 ms)
+    // Optimized for polyphonic electric guitar tracking:
+    // Window length 512 samples at 48 kHz (10.67 ms) covers down to ~93 Hz fundamentals
+    // Max search offset 256 samples (5.33 ms, total search range 10.67 ms)
+    // 1024 samples at 96 kHz
     if (currentSampleRate >= 88200.0)
     {
-        windowSize = 512;
-        hopSize = 256;
-        maxSearchOffset = 128;
+        windowSize = 1024;
+        hopSize = 512;
+        maxSearchOffset = 512;
     }
     else
     {
-        windowSize = 256;
-        hopSize = 128;
-        maxSearchOffset = 64;
+        windowSize = 512;
+        hopSize = 256;
+        maxSearchOffset = 256;
     }
 }
 
@@ -75,6 +76,7 @@ void WsolaEngine::reset() noexcept
     lastBestOffset = 0;
     nominalAnalysisPos = 0.0;
     isFirstFrame = true;
+    transientOnset = false;
     currentPitchRatio = targetPitchRatio;
 }
 
@@ -106,57 +108,83 @@ void WsolaEngine::processWsolaFrame() noexcept
     const size_t synthCap = synthesisBuffer[0].size();
     const size_t synthMask = synthCap - 1;
 
-    // Nominal analysis step: Ha = Hs / pitchRatio
-    const auto nominalHopA = static_cast<int64_t>(std::round(static_cast<double>(hopSize) / currentPitchRatio));
-
-    const auto targetLatency = static_cast<int64_t>(getLatencyInSamples());
+    // Available synthesis samples in the synthesis buffer ahead of read position
     const size_t availableSynth = (synthesisWritePos >= synthesisReadPos)
                                       ? (synthesisWritePos - synthesisReadPos)
                                       : (synthCap - synthesisReadPos + synthesisWritePos);
 
-    // Lookback distance in history buffer aligned to target PDC latency
-    int64_t targetLookback = targetLatency - static_cast<int64_t>(windowSize / 2) -
-                             static_cast<int64_t>(maxSearchOffset) + lastBestOffset -
-                             static_cast<int64_t>(availableSynth) - nominalHopA;
+    // Target latency in samples (e.g. 512 at 48k)
+    const double targetLatency = static_cast<double>(getLatencyInSamples());
 
-    const size_t clampedSearchLookback = (targetLookback > 0) ? static_cast<size_t>(targetLookback) : 0;
-    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset);
+    // Because the resampler advances through synthesis audio at rate 'resampleRatio = currentPitchRatio',
+    // 'availableSynth' synthesis samples correspond to (availableSynth / currentPitchRatio) input samples.
+    // To ensure constant latency L at the output of the resampler:
+    // The grain placed at synthesisWritePos corresponds to input lookback:
+    // nominalLookback = L - (availableSynth / currentPitchRatio)
+    const double synthInInputSamples = static_cast<double>(availableSynth) / currentPitchRatio;
+    double nominalLookback = targetLatency - synthInInputSamples;
+    if (nominalLookback < 0.0)
+        nominalLookback = 0.0;
 
-    if (isFirstFrame)
-    {
-        for (size_t ch = 0; ch < allocatedChannels; ++ch)
-        {
-            historyBuffer.extractSegment(ch, clampedSearchLookback, channelRefBuffers[ch].data(), windowSize);
-        }
-        lastBestOffset = 0;
-        isFirstFrame = false;
-    }
+    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset) + hopSize;
+
+    // Calculate lookbackOffset for historyBuffer.extractSegment.
+    // extractSegment extracts samples from [writePos - lookbackOffset - searchLen] to [writePos - lookbackOffset].
+    // With offset maxSearchOffset in search buffer having lookback nominalLookback:
+    // lookbackOffset = nominalLookback - maxSearchOffset - hopSize
+    const int64_t rawLookbackOffset = static_cast<int64_t>(std::round(nominalLookback)) -
+                                      static_cast<int64_t>(maxSearchOffset) -
+                                      static_cast<int64_t>(hopSize);
+    const size_t clampedLookbackOffset = (rawLookbackOffset > 0) ? static_cast<size_t>(rawLookbackOffset) : 0;
 
     for (size_t ch = 0; ch < allocatedChannels; ++ch)
     {
-        historyBuffer.extractSegment(ch, clampedSearchLookback, channelSearchBuffers[ch].data(), searchLen);
+        historyBuffer.extractSegment(ch, clampedLookbackOffset, channelSearchBuffers[ch].data(), searchLen);
     }
 
-    // Search for optimal phase-coherent offset across all channels
-    const float *refPtrs[8]{nullptr};
-    const float *searchPtrs[8]{nullptr};
-    const size_t chCount = std::min(allocatedChannels, size_t(8));
+    int bestDelta = 0;
 
-    for (size_t ch = 0; ch < chCount; ++ch)
+    if (transientClarityEnabled && transientOnset)
     {
-        refPtrs[ch] = channelRefBuffers[ch].data();
-        searchPtrs[ch] = channelSearchBuffers[ch].data();
+        // Transient-synchronized grain alignment (Neural DSP / Helix style):
+        // Snap directly to the transient onset without cross-correlation smearing!
+        bestDelta = 0;
+        transientOnset = false;
+    }
+    else if (isFirstFrame)
+    {
+        for (size_t ch = 0; ch < allocatedChannels; ++ch)
+        {
+            std::copy(channelSearchBuffers[ch].data() + maxSearchOffset,
+                      channelSearchBuffers[ch].data() + maxSearchOffset + windowSize, channelRefBuffers[ch].data());
+        }
+        bestDelta = 0;
+        isFirstFrame = false;
+    }
+    else
+    {
+        // Search for optimal phase-coherent offset across all channels
+        const float *refPtrs[8]{nullptr};
+        const float *searchPtrs[8]{nullptr};
+        const size_t chCount = std::min(allocatedChannels, size_t(8));
+
+        for (size_t ch = 0; ch < chCount; ++ch)
+        {
+            refPtrs[ch] = channelRefBuffers[ch].data();
+            searchPtrs[ch] = channelSearchBuffers[ch].data();
+        }
+
+        const auto correlation =
+            correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
+        bestDelta = correlation.bestOffset;
     }
 
-    const auto correlation =
-        correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
-
-    lastBestOffset = correlation.bestOffset;
+    lastBestOffset = bestDelta;
+    const size_t bestGrainOffset = static_cast<size_t>(maxSearchOffset + bestDelta);
 
     // Extract best-matching grain for each channel and overlap-add into synthesis buffer
     for (size_t ch = 0; ch < allocatedChannels; ++ch)
     {
-        const size_t bestGrainOffset = static_cast<size_t>(maxSearchOffset + correlation.bestOffset);
         const float *searchData = channelSearchBuffers[ch].data() + bestGrainOffset;
 
         // Apply Hann window
@@ -171,7 +199,7 @@ void WsolaEngine::processWsolaFrame() noexcept
         }
 
         // Prepare reference for the next synthesis hop: the natural continuation of this grain
-        // Advanced by hopSize
+        // Advanced by hopSize in the search buffer
         const size_t nextRefOffset = bestGrainOffset + hopSize;
         if (nextRefOffset + windowSize <= searchLen)
         {
@@ -249,9 +277,10 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
     const size_t synthCap = synthesisBuffer[0].size();
     const size_t synthMask = synthCap - 1;
 
-    // How many synthesis samples are needed to produce 'numSamples' of resampled output:
-    // Hermite cubic resampler requires 4 samples lookahead, kept with a safe margin of 16 samples
-    const double resampleRatio = 1.0 / currentPitchRatio;
+    // Resampling ratio is the playback speed:
+    // alpha > 1.0 (Pitch Up) => resampleRatio > 1.0 (steps through synthesis audio faster)
+    // alpha < 1.0 (Pitch Down) => resampleRatio < 1.0 (steps through synthesis audio slower)
+    const double resampleRatio = currentPitchRatio;
     const size_t neededSynthSamples =
         static_cast<size_t>(std::ceil(static_cast<double>(numSamples) * resampleRatio)) + 16;
 
@@ -272,6 +301,7 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
         contiguousSynthBuffer.resize(neededSynthSamples * 2, 0.0f);
 
     float *contiguousSynth = contiguousSynthBuffer.data();
+    size_t actualConsumed = 0;
 
     for (size_t ch = 0; ch < channelsToProcess; ++ch)
     {
@@ -286,19 +316,20 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
         }
 
         // Resample from contiguous synthesis audio into output buffer
-        resampler.processChannel(contiguousSynth, neededSynthSamples, outputChannels[ch], numSamples, resampleRatio,
-                                 ch);
+        const size_t consumed = resampler.processChannel(
+            contiguousSynth, neededSynthSamples, outputChannels[ch], numSamples, resampleRatio, ch);
+
+        if (ch == 0)
+            actualConsumed = consumed;
 
         // Clear consumed portion in circular synthesis buffer
-        const size_t consumed = static_cast<size_t>(std::floor(static_cast<double>(numSamples) * resampleRatio));
-        for (size_t i = 0; i < consumed; ++i)
+        for (size_t i = 0; i < actualConsumed; ++i)
         {
             synthesisBuffer[ch][(synthesisReadPos + i) & synthMask] = 0.0f;
         }
     }
 
-    const size_t consumed = static_cast<size_t>(std::floor(static_cast<double>(numSamples) * resampleRatio));
-    synthesisReadPos = (synthesisReadPos + consumed) & synthMask;
+    synthesisReadPos = (synthesisReadPos + actualConsumed) & synthMask;
 }
 
 } // namespace pps
