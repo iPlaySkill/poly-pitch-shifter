@@ -322,6 +322,24 @@ target_link_libraries(WaveformVisualizerTests
 
 add_test(NAME WaveformVisualizerTest COMMAND WaveformVisualizerTests)
 
+add_executable(SpectrumVisualizerTests
+    SpectrumVisualizerTest.cpp
+    ../Source/GUI/SpectrumVisualizer.cpp
+)
+
+target_include_directories(SpectrumVisualizerTests PRIVATE ../Source)
+target_compile_features(SpectrumVisualizerTests PRIVATE cxx_std_20)
+
+target_link_libraries(SpectrumVisualizerTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME SpectrumVisualizerTest COMMAND SpectrumVisualizerTests)
+
+
 
 
 
