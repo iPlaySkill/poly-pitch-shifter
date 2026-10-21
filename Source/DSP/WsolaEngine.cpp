@@ -44,20 +44,20 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Window length: ~16-20 ms depending on sample rate
-    // 512 samples at 48 kHz = 10.67 ms (low latency for guitar playing)
-    // 1024 samples at 96 kHz = 10.67 ms
+    // Optimized for low-latency live guitar performance:
+    // 256 samples at 48 kHz = 5.33 ms (hop = 128 = 2.67 ms)
+    // 512 samples at 96 kHz = 5.33 ms (hop = 256 = 2.67 ms)
     if (currentSampleRate >= 88200.0)
-    {
-        windowSize = 1024;
-        hopSize = 512;
-        maxSearchOffset = 256;
-    }
-    else
     {
         windowSize = 512;
         hopSize = 256;
         maxSearchOffset = 128;
+    }
+    else
+    {
+        windowSize = 256;
+        hopSize = 128;
+        maxSearchOffset = 64;
     }
 }
 
@@ -93,8 +93,12 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
-    // Latency is composed of the history lookback plus one synthesis hop
-    return static_cast<int>(windowSize + static_cast<size_t>(maxSearchOffset) + hopSize);
+    // Constant algorithmic latency of 10.67 ms across all host sample rates
+    // (512 samples at 44.1/48 kHz, 1024 samples at 88.2/96 kHz)
+    if (currentSampleRate >= 88200.0)
+        return 1024;
+
+    return 512;
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -105,25 +109,28 @@ void WsolaEngine::processWsolaFrame() noexcept
     // Nominal analysis step: Ha = Hs / pitchRatio
     const auto nominalHopA = static_cast<int64_t>(std::round(static_cast<double>(hopSize) / currentPitchRatio));
 
-    // Lookback distance in history buffer:
-    // Base latency anchor + nominal position
-    const size_t baseLookback = windowSize + static_cast<size_t>(maxSearchOffset) + hopSize;
+    const auto targetLatency = static_cast<int64_t>(getLatencyInSamples());
+    const size_t availableSynth = (synthesisWritePos >= synthesisReadPos)
+                                      ? (synthesisWritePos - synthesisReadPos)
+                                      : (synthCap - synthesisReadPos + synthesisWritePos);
+
+    // Lookback distance in history buffer aligned to target PDC latency
+    int64_t targetLookback = targetLatency - static_cast<int64_t>(windowSize / 2) -
+                             static_cast<int64_t>(maxSearchOffset) + lastBestOffset -
+                             static_cast<int64_t>(availableSynth) - nominalHopA;
+
+    const size_t clampedSearchLookback = (targetLookback > 0) ? static_cast<size_t>(targetLookback) : 0;
+    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset);
 
     if (isFirstFrame)
     {
-        // On the first frame, reference is directly from the base lookback
         for (size_t ch = 0; ch < allocatedChannels; ++ch)
         {
-            historyBuffer.extractSegment(ch, baseLookback, channelRefBuffers[ch].data(), windowSize);
+            historyBuffer.extractSegment(ch, clampedSearchLookback, channelRefBuffers[ch].data(), windowSize);
         }
         lastBestOffset = 0;
         isFirstFrame = false;
     }
-
-    // Extract search window around nominal analysis point: length = windowSize + 2 * maxSearchOffset
-    const auto searchLookback = static_cast<int64_t>(baseLookback) - nominalHopA + static_cast<int64_t>(lastBestOffset);
-    const size_t clampedSearchLookback = (searchLookback > 0) ? static_cast<size_t>(searchLookback) : 0;
-    const size_t searchLen = windowSize + 2 * static_cast<size_t>(maxSearchOffset);
 
     for (size_t ch = 0; ch < allocatedChannels; ++ch)
     {
@@ -225,13 +232,16 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
         historyBuffer.write(inputChannels, channelsToProcess, numSamples);
     }
 
-    // Bit-perfect bypass optimization when pitch ratio is unity
+    // Bit-perfect bypass optimization with exact host PDC latency alignment
     if (std::abs(currentPitchRatio - 1.0) < 0.0005)
     {
+        const size_t targetLatency = static_cast<size_t>(getLatencyInSamples());
         for (size_t ch = 0; ch < channelsToProcess; ++ch)
         {
-            if (inputChannels[ch] != nullptr && outputChannels[ch] != nullptr)
-                std::copy(inputChannels[ch], inputChannels[ch] + numSamples, outputChannels[ch]);
+            if (outputChannels[ch] != nullptr)
+            {
+                historyBuffer.extractSegment(ch, targetLatency, outputChannels[ch], numSamples);
+            }
         }
         return;
     }
@@ -240,10 +250,10 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
     const size_t synthMask = synthCap - 1;
 
     // How many synthesis samples are needed to produce 'numSamples' of resampled output:
-    // With Hermite resampler, ratio = 1.0 / currentPitchRatio
+    // Hermite cubic resampler requires 4 samples lookahead, kept with a safe margin of 16 samples
     const double resampleRatio = 1.0 / currentPitchRatio;
     const size_t neededSynthSamples =
-        static_cast<size_t>(std::ceil(static_cast<double>(numSamples) * resampleRatio)) + windowSize;
+        static_cast<size_t>(std::ceil(static_cast<double>(numSamples) * resampleRatio)) + 16;
 
     // Calculate how many samples are currently available in the synthesis buffer
     auto getAvailableSynth = [&]() noexcept -> size_t {

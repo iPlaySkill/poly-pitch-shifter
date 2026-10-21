@@ -48,11 +48,10 @@ graph TD
 ```
 
 ### 4. Компенсация задержки плагина (PDC)
-Плагин вносит постоянную алгоритмическую задержку $D_{\text{algo}}$, равную сумме окна анализа $W$, максимального поискового смещения $\Delta$ и шага синтеза $H$:
-$$D_{\text{algo}} = W + \Delta + H$$
-- При $F_s = 48\text{ кГц}$: $512 + 128 + 256 = 896\text{ сэмплов}$ ($18.67\text{ мс}$).
-- При $F_s = 96\text{ кГц}$: $1024 + 256 + 512 = 1792\text{ сэмпла}$ ($18.67\text{ мс}$).
-Задержка передается в DAW через `setLatencySamples()`, что позволяет хосту компенсировать временной сдвиг остальных дорожек проекта с точностью до сэмпла.
+Плагин вносит постоянную алгоритмическую задержку $D_{\text{algo}}$, оптимизированную для живой игры на гитаре в реальном времени:
+- При $F_s = 44.1 / 48\text{ кГц}$: $512\text{ сэмплов}$ ($10.67\text{ мс}$).
+- При $F_s = 88.2 / 96\text{ кГц}$: $1024\text{ сэмпла}$ ($10.67\text{ мс}$).
+Задержка передается в DAW через `setLatencySamples()`, что позволяет хосту компенсировать временной сдвиг остальных дорожек проекта с точностью до сэмпла. Любой тракт прохождения сигнала (включая Unity-Bypass и линию задержки транзиентов) строго синхронизирован с данной величиной задержки, исключая гребенчатую фильтрацию и пред-атаки.
 
 ---
 
@@ -101,8 +100,7 @@ graph TD
 ```
 
 ### 4. Plug-in Delay Compensation (PDC)
-The plugin introduces deterministic algorithmic latency $D_{\text{algo}}$ defined by:
-$$D_{\text{algo}} = W + \Delta + H$$
-- At $F_s = 48\text{ kHz}$: $512 + 128 + 256 = 896\text{ samples}$ ($18.67\text{ ms}$).
-- At $F_s = 96\text{ kHz}$: $1024 + 256 + 512 = 1792\text{ samples}$ ($18.67\text{ ms}$).
-Latency is reported to the host DAW via `setLatencySamples()`, ensuring sample-accurate project-wide track synchronization.
+The plugin introduces deterministic algorithmic latency $D_{\text{algo}}$ optimized for low-latency live guitar performance:
+- At $F_s = 44.1 / 48\text{ kHz}$: $512\text{ samples}$ ($10.67\text{ ms}$).
+- At $F_s = 88.2 / 96\text{ kHz}$: $1024\text{ samples}$ ($10.67\text{ ms}$).
+Latency is reported to the host DAW via `setLatencySamples()`, ensuring sample-accurate project-wide track synchronization. All signal paths (including unity-pitch pass-through and transient bypass delay line) are strictly aligned to this value, preventing comb filtering and pre-attack phase issues.
