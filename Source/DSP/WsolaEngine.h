@@ -89,10 +89,10 @@ private:
     size_t allocatedChannels = 2;
     size_t currentMaxBlock = 512;
 
-    // Window and hop parameters
-    size_t windowSize = 512;   // ~10.6 ms at 48 kHz
-    size_t hopSize = 256;      // 50% overlap
-    int maxSearchOffset = 128; // ~2.6 ms search range
+    // Window and hop parameters (optimized for low-latency live guitar performance)
+    size_t windowSize = 256;   // ~5.33 ms at 48 kHz
+    size_t hopSize = 128;      // 50% overlap
+    int maxSearchOffset = 64;  // ~1.33 ms search range
 
     // Target and smoothed pitch ratios
     double targetPitchRatio = 1.0;
