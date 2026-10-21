@@ -99,6 +99,8 @@ target_sources(PolyPitchShifter
         Source/GUI/CustomLookAndFeel.cpp
         Source/GUI/RotaryKnob.h
         Source/GUI/RotaryKnob.cpp
+        Source/GUI/PillToggle.h
+        Source/GUI/PillToggle.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
