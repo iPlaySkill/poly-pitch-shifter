@@ -262,4 +262,22 @@ target_link_libraries(PillToggleTests
 
 add_test(NAME PillToggleTest COMMAND PillToggleTests)
 
+add_executable(ControlPanelTests
+    ControlPanelTest.cpp
+    ../Source/GUI/ControlPanel.cpp
+)
+
+target_include_directories(ControlPanelTests PRIVATE ../Source)
+target_compile_features(ControlPanelTests PRIVATE cxx_std_20)
+
+target_link_libraries(ControlPanelTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME ControlPanelTest COMMAND ControlPanelTests)
+
+
 
