@@ -15,7 +15,7 @@ PolyPitchShifterAudioProcessorEditor::PolyPitchShifterAudioProcessorEditor(PolyP
       sensitivityKnob("Sensitivity", pps::gui::RotaryKnob::UnitType::Multiplier,
                       pps::params::transientSensitivityDefault, pps::params::transientSensitivityMin,
                       pps::params::transientSensitivityMax, 0.05),
-      transientBypassToggle("ATTACK BYPASS", pps::gui::GuiTokens::accentAmber),
+      transientBypassToggle("ATTACK CLARITY", pps::gui::GuiTokens::accentAmber),
       mixKnob("Mix", pps::gui::RotaryKnob::UnitType::Percent, pps::params::mixDefault,
               pps::params::mixMin, pps::params::mixMax, 1.0),
       gainKnob("Gain", pps::gui::RotaryKnob::UnitType::Decibels, pps::params::gainDefault,
@@ -128,9 +128,9 @@ void PolyPitchShifterAudioProcessorEditor::paint(juce::Graphics &g)
     g.drawText("SHIFTER", 125, 10, 90, 22, juce::Justification::centredLeft, false);
 
     // Subtitle
-    g.setFont(juce::Font(10.0f, juce::Font::plain));
-    g.setColour(pps::gui::GuiTokens::textMuted);
-    g.drawText("PRO GUITAR WSOLA DSP • 64-BIT PRECISION", 18, 32, 260, 14, juce::Justification::centredLeft, false);
+    g.setFont(juce::Font(11.0f, juce::Font::plain));
+    g.setColour(pps::gui::GuiTokens::textSecondary);
+    g.drawText("PRO GUITAR WSOLA DSP | 64-BIT PRECISION", 18, 32, 280, 14, juce::Justification::centredLeft, false);
 
     // Latency Telemetry Badge (Middle Header)
     const int latencySamples = audioProcessor.getLatencySamples();
@@ -162,8 +162,8 @@ void PolyPitchShifterAudioProcessorEditor::paint(juce::Graphics &g)
 
     g.setFont(juce::Font(10.0f, juce::Font::plain));
     g.setColour(pps::gui::GuiTokens::textMuted);
-    g.drawText("WSOLA HERMITE ENGINE • STEREO PHASE-LOCKED • ZERO-ALLOCATION RT",
-               16, getHeight() - 20, 420, 16, juce::Justification::centredLeft, false);
+    g.drawText("WSOLA HERMITE ENGINE | STEREO PHASE-LOCKED | ZERO-ALLOCATION RT",
+               16, getHeight() - 20, 480, 16, juce::Justification::centredLeft, false);
 
     juce::String srText = juce::String(static_cast<int>(sr)) + " Hz";
     g.drawText(srText, getWidth() - 100, getHeight() - 20, 85, 16, juce::Justification::centredRight, false);
