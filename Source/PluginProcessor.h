@@ -2,6 +2,7 @@
 #include "DSP/SmoothedGain.h"
 #include "DSP/TransientBypassRouter.h"
 #include "DSP/WsolaEngine.h"
+#include "GUI/VisualizerBuffer.h"
 #include "Parameters.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -90,6 +91,10 @@ public:
     {
         return transientRouter;
     }
+    pps::gui::VisualizerBuffer &getVisualizerBuffer() noexcept
+    {
+        return visualizerBuffer;
+    }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
@@ -109,6 +114,7 @@ private:
     pps::TransientBypassRouter transientRouter;
     pps::SmoothedGain smoothedMix;
     pps::SmoothedGain smoothedGain;
+    pps::gui::VisualizerBuffer visualizerBuffer;
 
     juce::AudioBuffer<float> dryBuffer;
     juce::AudioBuffer<float> delayedDryBuffer;
