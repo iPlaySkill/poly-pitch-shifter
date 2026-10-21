@@ -103,6 +103,7 @@ target_sources(PolyPitchShifter
         Source/GUI/PillToggle.cpp
         Source/GUI/ControlPanel.h
         Source/GUI/ControlPanel.cpp
+        Source/GUI/VisualizerBuffer.h
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
