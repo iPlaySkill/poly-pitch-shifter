@@ -94,6 +94,9 @@ target_sources(PolyPitchShifter
         Source/PluginEditor.cpp
         Source/Parameters.h
         Source/Parameters.cpp
+        Source/GUI/GuiTokens.h
+        Source/GUI/CustomLookAndFeel.h
+        Source/GUI/CustomLookAndFeel.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
