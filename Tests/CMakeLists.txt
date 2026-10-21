@@ -305,6 +305,24 @@ target_link_libraries(LevelMeterTests
 
 add_test(NAME LevelMeterTest COMMAND LevelMeterTests)
 
+add_executable(WaveformVisualizerTests
+    WaveformVisualizerTest.cpp
+    ../Source/GUI/WaveformVisualizer.cpp
+)
+
+target_include_directories(WaveformVisualizerTests PRIVATE ../Source)
+target_compile_features(WaveformVisualizerTests PRIVATE cxx_std_20)
+
+target_link_libraries(WaveformVisualizerTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME WaveformVisualizerTest COMMAND WaveformVisualizerTests)
+
+
 
 
 
