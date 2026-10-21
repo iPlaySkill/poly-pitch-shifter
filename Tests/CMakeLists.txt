@@ -207,3 +207,20 @@ target_compile_options(DspBenchmarkTests
 )
 
 add_test(NAME DspBenchmarkTest COMMAND DspBenchmarkTests)
+
+add_executable(CustomLookAndFeelTests
+    CustomLookAndFeelTest.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+)
+
+target_include_directories(CustomLookAndFeelTests PRIVATE ../Source)
+target_compile_features(CustomLookAndFeelTests PRIVATE cxx_std_20)
+
+target_link_libraries(CustomLookAndFeelTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME CustomLookAndFeelTest COMMAND CustomLookAndFeelTests)
