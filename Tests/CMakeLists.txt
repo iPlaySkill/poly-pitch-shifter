@@ -279,5 +279,15 @@ target_link_libraries(ControlPanelTests
 
 add_test(NAME ControlPanelTest COMMAND ControlPanelTests)
 
+add_executable(VisualizerBufferTests
+    VisualizerBufferTest.cpp
+)
+
+target_include_directories(VisualizerBufferTests PRIVATE ../Source)
+target_compile_features(VisualizerBufferTests PRIVATE cxx_std_20)
+
+add_test(NAME VisualizerBufferTest COMMAND VisualizerBufferTests)
+
+
 
 

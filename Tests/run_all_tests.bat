@@ -37,12 +37,16 @@ echo [7/8] Testing LatencyReporting and PDC Alignment...
 cl %CXX_FLAGS% Tests\LatencyReportingTest.cpp Source\DSP\HermiteResampler.cpp Source\DSP\Windowing.cpp Source\DSP\CrossCorrelationFinder.cpp Source\DSP\AntiAliasingFilter.cpp Source\DSP\WsolaEngine.cpp Source\DSP\TransientDetector.cpp Source\DSP\TransientBypassRouter.cpp /Fe:build\LatencyReportingTest.exe /Fo:build\ >nul 2>&1
 build\LatencyReportingTest.exe || goto :error
 
-echo [8/8] Testing WsolaEngine and Polyphonic Chords...
+echo [8/9] Testing WsolaEngine and Polyphonic Chords...
 cl %CXX_FLAGS% Tests\PolyphonicGuitarChordTest.cpp Source\DSP\HermiteResampler.cpp Source\DSP\Windowing.cpp Source\DSP\CrossCorrelationFinder.cpp Source\DSP\AntiAliasingFilter.cpp Source\DSP\WsolaEngine.cpp Source\DSP\TransientDetector.cpp Source\DSP\TransientBypassRouter.cpp /Fe:build\PolyphonicGuitarChordTest.exe /Fo:build\ >nul 2>&1
 build\PolyphonicGuitarChordTest.exe || goto :error
 
+echo [9/9] Testing VisualizerBuffer Lock-Free Telemetry...
+cl %CXX_FLAGS% Tests\VisualizerBufferTest.cpp /Fe:build\VisualizerBufferTest.exe /Fo:build\ >nul 2>&1
+build\VisualizerBufferTest.exe || goto :error
+
 echo =========================================================
-echo [SUCCESS] All 8 test suites PASSED with 100%% precision!
+echo [SUCCESS] All 9 test suites PASSED with 100%% precision!
 echo =========================================================
 exit /b 0
 
