@@ -97,6 +97,8 @@ target_sources(PolyPitchShifter
         Source/GUI/GuiTokens.h
         Source/GUI/CustomLookAndFeel.h
         Source/GUI/CustomLookAndFeel.cpp
+        Source/GUI/RotaryKnob.h
+        Source/GUI/RotaryKnob.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
