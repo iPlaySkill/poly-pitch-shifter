@@ -47,32 +47,39 @@ int main()
         assert(std::abs(engine.getCurrentPitchRatio() - 2.0) < 0.01);
     }
 
-    // 3. Bit-perfect unity pass-through test
+    // 3. Bit-perfect unity pass-through test with host PDC latency alignment
     {
         pps::WsolaEngine engine;
         engine.prepare(48000.0, 128, 2);
         engine.setPitchShift(0.0f, 0.0f);
 
-        std::vector<float> inL(128);
-        std::vector<float> inR(128);
-        for (size_t i = 0; i < 128; ++i)
+        const int latency = engine.getLatencyInSamples();
+        constexpr size_t blockSize = 128;
+        constexpr size_t totalBlocks = 10;
+        constexpr size_t totalSamples = blockSize * totalBlocks;
+
+        std::vector<float> inL(totalSamples);
+        std::vector<float> inR(totalSamples);
+        for (size_t i = 0; i < totalSamples; ++i)
         {
             inL[i] = std::sin(2.0f * 3.14159265f * static_cast<float>(i) / 16.0f);
             inR[i] = std::cos(2.0f * 3.14159265f * static_cast<float>(i) / 16.0f);
         }
 
-        std::vector<float> outL(128, 0.0f);
-        std::vector<float> outR(128, 0.0f);
+        std::vector<float> outL(totalSamples, 0.0f);
+        std::vector<float> outR(totalSamples, 0.0f);
 
-        const float *inPtrs[2] = {inL.data(), inR.data()};
-        float *outPtrs[2] = {outL.data(), outR.data()};
-
-        engine.process(inPtrs, outPtrs, 2, 128);
-
-        for (size_t i = 0; i < 128; ++i)
+        for (size_t b = 0; b < totalBlocks; ++b)
         {
-            assert(std::abs(outL[i] - inL[i]) < 1e-6f);
-            assert(std::abs(outR[i] - inR[i]) < 1e-6f);
+            const float *inPtrs[2] = {inL.data() + b * blockSize, inR.data() + b * blockSize};
+            float *outPtrs[2] = {outL.data() + b * blockSize, outR.data() + b * blockSize};
+            engine.process(inPtrs, outPtrs, 2, blockSize);
+        }
+
+        for (size_t i = static_cast<size_t>(latency); i < totalSamples; ++i)
+        {
+            assert(std::abs(outL[i] - inL[i - latency]) < 1e-6f);
+            assert(std::abs(outR[i] - inR[i - latency]) < 1e-6f);
         }
     }
 

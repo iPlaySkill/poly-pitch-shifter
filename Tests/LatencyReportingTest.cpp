@@ -14,15 +14,39 @@ int main()
         engine.prepare(48000.0, 256, 2);
 
         const int latency48k = engine.getLatencyInSamples();
-        // At 48k: windowSize (512) + maxSearchOffset (128) + hopSize (256) = 896 samples
-        assert(latency48k == 896);
+        // At 48k: constant low-latency live performance buffer of 512 samples (10.67 ms)
+        assert(latency48k == 512);
         const double latencyMs = (static_cast<double>(latency48k) / 48000.0) * 1000.0;
-        assert(latencyMs < 20.0); // Bounded within live performance window
+        assert(latencyMs < 12.0); // Bounded within live performance window
 
         pps::TransientBypassRouter router;
         router.prepare(48000.0, 2, static_cast<size_t>(latency48k + 1024));
         router.setAlignmentDelay(latency48k);
         assert(router.getAlignmentDelay() == latency48k);
+
+        // Verify that unity ratio (bypass) outputs an impulse at EXACTLY latency48k samples
+        std::vector<float> inBlock(128, 0.0f);
+        std::vector<float> outBlock(128, 0.0f);
+        inBlock[0] = 1.0f;
+        const float* inPtr = inBlock.data();
+        float* outPtr = outBlock.data();
+        int impulseResponseSample = -1;
+        int totalProcessed = 0;
+
+        for (int b = 0; b < 10; ++b)
+        {
+            if (b > 0) inBlock[0] = 0.0f;
+            engine.process(&inPtr, &outPtr, 1, 128);
+            for (size_t i = 0; i < 128; ++i)
+            {
+                if (std::abs(outBlock[i]) > 0.001f && impulseResponseSample < 0)
+                {
+                    impulseResponseSample = totalProcessed + static_cast<int>(i);
+                }
+            }
+            totalProcessed += 128;
+        }
+        assert(impulseResponseSample == latency48k);
     }
 
     // 2. Latency calculation at high-resolution 96 kHz
@@ -31,10 +55,10 @@ int main()
         engine.prepare(96000.0, 512, 2);
 
         const int latency96k = engine.getLatencyInSamples();
-        // At 96k: windowSize (1024) + maxSearchOffset (256) + hopSize (512) = 1792 samples
-        assert(latency96k == 1792);
+        // At 96k: constant low-latency buffer of 1024 samples (10.67 ms)
+        assert(latency96k == 1024);
         const double latencyMs = (static_cast<double>(latency96k) / 96000.0) * 1000.0;
-        assert(latencyMs < 20.0); // Constant time delay across sample rates
+        assert(latencyMs < 12.0); // Constant time delay across sample rates
 
         pps::TransientBypassRouter router;
         router.prepare(96000.0, 2, static_cast<size_t>(latency96k + 1024));
@@ -47,12 +71,12 @@ int main()
         pps::WsolaEngine engine;
         engine.prepare(44100.0, 256, 2);
         const int latency44k = engine.getLatencyInSamples();
-        assert(latency44k == 896);
+        assert(latency44k == 512);
 
         // Switch to 88.2 kHz
         engine.prepare(88200.0, 256, 2);
         const int latency88k = engine.getLatencyInSamples();
-        assert(latency88k == 1792);
+        assert(latency88k == 1024);
     }
 
     std::cout << "  Passed: Latency reporting and PDC alignment verified across sample rates." << std::endl;
