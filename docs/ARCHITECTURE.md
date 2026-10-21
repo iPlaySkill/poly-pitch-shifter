@@ -53,6 +53,12 @@ graph TD
 - При $F_s = 88.2 / 96\text{ кГц}$: $1024\text{ сэмпла}$ ($10.67\text{ мс}$).
 Задержка передается в DAW через `setLatencySamples()`, что позволяет хосту компенсировать временной сдвиг остальных дорожек проекта с точностью до сэмпла. Любой тракт прохождения сигнала (включая Unity-Bypass и линию задержки транзиентов) строго синхронизирован с данной величиной задержки, исключая гребенчатую фильтрацию и пред-атаки.
 
+### 5. Архитектура графического интерфейса и телеметрии реального времени (GUI Layer)
+Пользовательский интерфейс построен на базе модульной дизайн-системы в темной студийной эстетике (Obsidian Dark Studio):
+- **Связующий мост телеметрии (`VisualizerBuffer`)**: Неблокирующий циклический FIFO-буфер одиночного производителя и одиночного потребителя (SPSC) емкостью 4096 отсчетов. В звуковом потоке `processBlock` сбрасывает данные о форме волны, пиковых уровнях (Peak L/R), среднеквадратичных значениях (RMS L/R), активности транзиентов и динамической частоте среза сглаживающего фильтра со сложностью $O(1)$ без аллокаций в куче и без захвата мьютексов.
+- **Таймер обновления (60 FPS Timer)**: Поток интерфейса опрашивает `VisualizerBuffer` с частотой 60 Гц, обновляя осциллограф `WaveformVisualizer`, 1024-точечный спектроанализатор `SpectrumVisualizer` и стерео-индикатор `LevelMeter`.
+- **Векторный рендеринг (`CustomLookAndFeel`)**: Полностью процедурная векторная отрисовка круговых регуляторов с динамическими дугами свечения, переключателей-пилюль со светодиодными индикаторами и карточек `ControlPanel`.
+
 ---
 
 ## [ENG] English Architecture Specification
@@ -104,3 +110,10 @@ The plugin introduces deterministic algorithmic latency $D_{\text{algo}}$ optimi
 - At $F_s = 44.1 / 48\text{ kHz}$: $512\text{ samples}$ ($10.67\text{ ms}$).
 - At $F_s = 88.2 / 96\text{ kHz}$: $1024\text{ samples}$ ($10.67\text{ ms}$).
 Latency is reported to the host DAW via `setLatencySamples()`, ensuring sample-accurate project-wide track synchronization. All signal paths (including unity-pitch pass-through and transient bypass delay line) are strictly aligned to this value, preventing comb filtering and pre-attack phase issues.
+
+### 5. GUI Subsystem & Real-Time Telemetry Layer
+The graphical user interface implements a responsive, high-contrast dark studio design system:
+- **Lock-Free Telemetry Bridge (`VisualizerBuffer`)**: Single-Producer Single-Consumer (SPSC) circular FIFO with capacity 4096 samples. `processBlock` streams audio waveforms, peak amplitudes, RMS levels, transient trigger flags, and Butterworth filter cutoff frequencies in $O(1)$ time with zero heap allocations and zero mutex locks.
+- **60 FPS GUI Refresh Loop**: The message thread consumes telemetry and renders real-time audio dynamics through `WaveformVisualizer` (oscilloscope with transient amber strobe flash), `SpectrumVisualizer` (1024-FFT logarithmic spectrum with dynamic anti-aliasing cutoff indicator), and `LevelMeter` (stereo peak/RMS bar meter with clip hold).
+- **Custom Vector Graphics (`CustomLookAndFeel`)**: Procedurally rendered vector knobs with illuminated glow arcs, hardware-style pill switches, and glassmorphic card containers (`ControlPanel`).
+
