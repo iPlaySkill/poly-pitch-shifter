@@ -376,6 +376,44 @@ target_link_libraries(VisualizerIntegrationTests
 
 add_test(NAME VisualizerIntegrationTest COMMAND VisualizerIntegrationTests)
 
+add_executable(PluginEditorTests
+    PluginEditorTest.cpp
+    ../Source/PluginProcessor.cpp
+    ../Source/PluginEditor.cpp
+    ../Source/Parameters.cpp
+    ../Source/GUI/CustomLookAndFeel.cpp
+    ../Source/GUI/RotaryKnob.cpp
+    ../Source/GUI/PillToggle.cpp
+    ../Source/GUI/ControlPanel.cpp
+    ../Source/GUI/LevelMeter.cpp
+    ../Source/GUI/WaveformVisualizer.cpp
+    ../Source/GUI/SpectrumVisualizer.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+    ../Source/DSP/TransientDetector.cpp
+    ../Source/DSP/TransientBypassRouter.cpp
+)
+
+target_include_directories(PluginEditorTests PRIVATE ../Source)
+target_compile_features(PluginEditorTests PRIVATE cxx_std_20)
+
+target_link_libraries(PluginEditorTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_events
+        juce::juce_core
+        juce::juce_data_structures
+        juce::juce_audio_basics
+)
+
+add_test(NAME PluginEditorTest COMMAND PluginEditorTests)
+
+
 
 
 
