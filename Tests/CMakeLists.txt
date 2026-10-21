@@ -288,6 +288,24 @@ target_compile_features(VisualizerBufferTests PRIVATE cxx_std_20)
 
 add_test(NAME VisualizerBufferTest COMMAND VisualizerBufferTests)
 
+add_executable(LevelMeterTests
+    LevelMeterTest.cpp
+    ../Source/GUI/LevelMeter.cpp
+)
+
+target_include_directories(LevelMeterTests PRIVATE ../Source)
+target_compile_features(LevelMeterTests PRIVATE cxx_std_20)
+
+target_link_libraries(LevelMeterTests
+    PRIVATE
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME LevelMeterTest COMMAND LevelMeterTests)
+
+
 
 
 
