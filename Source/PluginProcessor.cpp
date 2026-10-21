@@ -211,6 +211,11 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
     transientRouter.feedDryAudio(dryBuffer.getArrayOfReadPointers(), static_cast<size_t>(numChannels),
                                  static_cast<size_t>(numSamples));
 
+    // Transient attack clarity synchronization to WSOLA engine (Neural DSP / Helix style)
+    const bool isAttack = transientRouter.getDetector().isAttackActive();
+    wsolaEngine.setTransientClarityEnabled(isTransientBypassEnabled());
+    wsolaEngine.setTransientOnset(isAttack);
+
     // Extract latency-aligned dry audio for phase-coherent dry/wet mixing
     transientRouter.extractDelayedDry(delayedDryBuffer.getArrayOfWritePointers(), static_cast<size_t>(numChannels),
                                       static_cast<size_t>(numSamples));
