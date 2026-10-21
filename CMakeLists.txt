@@ -106,6 +106,8 @@ target_sources(PolyPitchShifter
         Source/GUI/VisualizerBuffer.h
         Source/GUI/LevelMeter.h
         Source/GUI/LevelMeter.cpp
+        Source/GUI/WaveformVisualizer.h
+        Source/GUI/WaveformVisualizer.cpp
         Source/DSP/HermiteResampler.h
         Source/DSP/HermiteResampler.cpp
         Source/DSP/Windowing.h
