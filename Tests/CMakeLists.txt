@@ -244,3 +244,22 @@ target_link_libraries(RotaryKnobTests
 
 add_test(NAME RotaryKnobTest COMMAND RotaryKnobTests)
 
+add_executable(PillToggleTests
+    PillToggleTest.cpp
+    ../Source/GUI/PillToggle.cpp
+)
+
+target_include_directories(PillToggleTests PRIVATE ../Source)
+target_compile_features(PillToggleTests PRIVATE cxx_std_20)
+
+target_link_libraries(PillToggleTests
+    PRIVATE
+        juce::juce_audio_processors
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_core
+)
+
+add_test(NAME PillToggleTest COMMAND PillToggleTests)
+
+
