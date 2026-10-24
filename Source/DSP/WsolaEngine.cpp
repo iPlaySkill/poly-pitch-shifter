@@ -303,6 +303,18 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
     float *contiguousSynth = contiguousSynthBuffer.data();
     size_t actualConsumed = 0;
 
+    // Smooth perceptual equal-loudness compensation across pitch shifts:
+    // Compensates for anti-aliasing HF attenuation when pitching up and sub-bass buildup when pitching down
+    float loudnessCompensation = 1.0f;
+    if (currentPitchRatio > 1.0)
+    {
+        loudnessCompensation = static_cast<float>(1.0 + 0.12 * (currentPitchRatio - 1.0));
+    }
+    else if (currentPitchRatio < 1.0)
+    {
+        loudnessCompensation = static_cast<float>(1.0 / (1.0 + 0.08 * (1.0 - currentPitchRatio)));
+    }
+
     for (size_t ch = 0; ch < channelsToProcess; ++ch)
     {
         if (outputChannels[ch] == nullptr)
@@ -318,6 +330,13 @@ void WsolaEngine::process(const float *const *inputChannels, float *const *outpu
         // Resample from contiguous synthesis audio into output buffer
         const size_t consumed = resampler.processChannel(
             contiguousSynth, neededSynthSamples, outputChannels[ch], numSamples, resampleRatio, ch);
+
+        if (std::abs(loudnessCompensation - 1.0f) > 1e-4f)
+        {
+            float *out = outputChannels[ch];
+            for (size_t i = 0; i < numSamples; ++i)
+                out[i] *= loudnessCompensation;
+        }
 
         if (ch == 0)
             actualConsumed = consumed;
