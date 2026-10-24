@@ -7,6 +7,7 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true))
     , apvts(*this, nullptr, "Parameters", pps::params::createParameterLayout())
 {
+    inputGainParam = apvts.getRawParameterValue(pps::params::pidInputGain);
     bypassParam = apvts.getRawParameterValue(pps::params::pidBypass);
     shiftParam = apvts.getRawParameterValue(pps::params::pidShift);
     fineParam = apvts.getRawParameterValue(pps::params::pidFine);
@@ -15,6 +16,7 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     transientBypassParam = apvts.getRawParameterValue(pps::params::pidTransientBypass);
     transientSensitivityParam = apvts.getRawParameterValue(pps::params::pidTransientSensitivity);
 
+    apvts.addParameterListener(pps::params::pidInputGain, this);
     apvts.addParameterListener(pps::params::pidBypass, this);
     apvts.addParameterListener(pps::params::pidShift, this);
     apvts.addParameterListener(pps::params::pidFine, this);
@@ -26,6 +28,7 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
 {
+    apvts.removeParameterListener(pps::params::pidInputGain, this);
     apvts.removeParameterListener(pps::params::pidBypass, this);
     apvts.removeParameterListener(pps::params::pidShift, this);
     apvts.removeParameterListener(pps::params::pidFine, this);
@@ -109,13 +112,15 @@ void PolyPitchShifterAudioProcessor::prepareToPlay(double sampleRate, int sample
     const int wsolaLatency = wsolaEngine.getLatencyInSamples();
     transientRouter.prepare(sampleRate, numChannels, static_cast<size_t>(wsolaLatency + 2048));
     transientRouter.setAlignmentDelay(wsolaLatency);
-    transientRouter.setEnabled(isTransientBypassEnabled());
-    transientRouter.setSensitivity(getTransientSensitivity());
+    transientRouter.setEnabled(false);
 
     dryBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
     delayedDryBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
     wetBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
     blendedBuffer.setSize(static_cast<int>(numChannels), samplesPerBlock);
+
+    smoothedInputGain.reset(sampleRate, 0.020);
+    smoothedInputGain.setCurrentAndTarget(juce::Decibels::decibelsToGain(getInputGainDb()));
 
     smoothedMix.reset(sampleRate, 0.020);
     smoothedMix.setCurrentAndTarget(getMixPercentage() / 100.0f);
@@ -170,11 +175,38 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
             const float peakR = (totalNumInputChannels > 1) ? buffer.getMagnitude(1, 0, numSamples) : peakL;
             const float rmsL = buffer.getRMSLevel(0, 0, numSamples);
             const float rmsR = (totalNumInputChannels > 1) ? buffer.getRMSLevel(1, 0, numSamples) : rmsL;
-            visualizerBuffer.pushAudio(buffer.getReadPointer(0), buffer.getReadPointer(0), numSamples,
-                                       false, peakL, peakR, rmsL, rmsR, 20000.0f);
+            visualizerBuffer.pushAudioDual(buffer.getReadPointer(0), buffer.getReadPointer(0), numSamples,
+                                           false, peakL, peakR, rmsL, rmsR, peakL, peakR, rmsL, rmsR, 20000.0f);
         }
         return;
     }
+
+    // Apply input gain stage
+    smoothedInputGain.setTarget(juce::Decibels::decibelsToGain(getInputGainDb()));
+    if (!smoothedInputGain.isSmoothing())
+    {
+        const float inGain = smoothedInputGain.getCurrentValue();
+        if (std::abs(inGain - 1.0f) > 1e-4f)
+        {
+            for (int ch = 0; ch < totalNumInputChannels; ++ch)
+                buffer.applyGain(ch, 0, numSamples, inGain);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float inGain = smoothedInputGain.getNextValue();
+            for (int ch = 0; ch < totalNumInputChannels; ++ch)
+                buffer.setSample(ch, i, buffer.getSample(ch, i) * inGain);
+        }
+    }
+
+    // Compute input telemetry (after input gain stage)
+    const float inPeakL = buffer.getMagnitude(0, 0, numSamples);
+    const float inPeakR = (totalNumInputChannels > 1) ? buffer.getMagnitude(1, 0, numSamples) : inPeakL;
+    const float inRmsL = buffer.getRMSLevel(0, 0, numSamples);
+    const float inRmsR = (totalNumInputChannels > 1) ? buffer.getRMSLevel(1, 0, numSamples) : inRmsL;
 
     // Update real-time pitch shift parameters
     wsolaEngine.setPitchShift(getShiftSemitones(), getFineCents());
@@ -189,11 +221,9 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
 
     const int numChannels = std::min(totalNumInputChannels, totalNumOutputChannels);
 
-    // Update smoothers and transient controls
+    // Update smoothers
     smoothedMix.setTarget(getMixPercentage() / 100.0f);
     smoothedGain.setTarget(juce::Decibels::decibelsToGain(getGainDb()));
-    transientRouter.setEnabled(isTransientBypassEnabled());
-    transientRouter.setSensitivity(getTransientSensitivity());
 
     if (dryBuffer.getNumSamples() < numSamples)
     {
@@ -207,16 +237,9 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
     for (int ch = 0; ch < numChannels; ++ch)
         dryBuffer.copyFrom(ch, 0, buffer, ch, 0, numSamples);
 
-    // Feed dry audio into transient delay line and compute detection
+    // Feed dry audio into latency delay line for phase-coherent dry/wet mixing
     transientRouter.feedDryAudio(dryBuffer.getArrayOfReadPointers(), static_cast<size_t>(numChannels),
                                  static_cast<size_t>(numSamples));
-
-    // Transient attack clarity synchronization to WSOLA engine (Neural DSP / Helix style)
-    const bool isAttack = transientRouter.getDetector().isAttackActive();
-    wsolaEngine.setTransientClarityEnabled(isTransientBypassEnabled());
-    wsolaEngine.setTransientOnset(isAttack);
-
-    // Extract latency-aligned dry audio for phase-coherent dry/wet mixing
     transientRouter.extractDelayedDry(delayedDryBuffer.getArrayOfWritePointers(), static_cast<size_t>(numChannels),
                                       static_cast<size_t>(numSamples));
 
@@ -224,9 +247,9 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
     wsolaEngine.process(dryBuffer.getArrayOfReadPointers(), wetBuffer.getArrayOfWritePointers(),
                         static_cast<size_t>(numChannels), static_cast<size_t>(numSamples));
 
-    // Blend pitch-shifted WSOLA audio with transient bypass
-    transientRouter.blendOutput(wetBuffer.getArrayOfReadPointers(), blendedBuffer.getArrayOfWritePointers(),
-                                static_cast<size_t>(numChannels), static_cast<size_t>(numSamples));
+    // Direct pitch-shifted WSOLA audio (transient boosting / attack bypass removed)
+    for (int ch = 0; ch < numChannels; ++ch)
+        blendedBuffer.copyFrom(ch, 0, wetBuffer, ch, 0, numSamples);
 
     // Latency-aligned Dry / Wet crossfading and master output gain stage
     if (!smoothedMix.isSmoothing() && !smoothedGain.isSmoothing())
@@ -266,20 +289,20 @@ void PolyPitchShifterAudioProcessor::processBlock(juce::AudioBuffer<float> &buff
         }
     }
 
-    // Stream audio and telemetry to lock-free GUI visualizer buffer
-    const float peakL = buffer.getMagnitude(0, 0, numSamples);
-    const float peakR = (numChannels > 1) ? buffer.getMagnitude(1, 0, numSamples) : peakL;
-    const float rmsL = buffer.getRMSLevel(0, 0, numSamples);
-    const float rmsR = (numChannels > 1) ? buffer.getRMSLevel(1, 0, numSamples) : rmsL;
-    const bool isTransient = transientRouter.getDetector().isAttackActive();
+    // Stream dual audio telemetry (Input & Output) to lock-free GUI visualizer buffer
+    const float outPeakL = buffer.getMagnitude(0, 0, numSamples);
+    const float outPeakR = (numChannels > 1) ? buffer.getMagnitude(1, 0, numSamples) : outPeakL;
+    const float outRmsL = buffer.getRMSLevel(0, 0, numSamples);
+    const float outRmsR = (numChannels > 1) ? buffer.getRMSLevel(1, 0, numSamples) : outRmsL;
     const float aaCutoff = wsolaEngine.getAntiAliasingFilter().getCurrentCutoffHz();
 
-    visualizerBuffer.pushAudio(delayedDryBuffer.getReadPointer(0),
-                               buffer.getReadPointer(0),
-                               numSamples,
-                               isTransient,
-                               peakL, peakR, rmsL, rmsR,
-                               aaCutoff);
+    visualizerBuffer.pushAudioDual(delayedDryBuffer.getReadPointer(0),
+                                   buffer.getReadPointer(0),
+                                   numSamples,
+                                   false,
+                                   inPeakL, inPeakR, inRmsL, inRmsR,
+                                   outPeakL, outPeakR, outRmsL, outRmsR,
+                                   aaCutoff);
 }
 
 bool PolyPitchShifterAudioProcessor::hasEditor() const

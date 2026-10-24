@@ -2,11 +2,18 @@
 
 namespace pps::gui {
 
-LevelMeter::LevelMeter()
+LevelMeter::LevelMeter(const juce::String &meterTitle)
+    : title(meterTitle)
 {
 }
 
 LevelMeter::~LevelMeter() = default;
+
+void LevelMeter::setTitle(const juce::String &newTitle)
+{
+    title = newTitle;
+    repaint();
+}
 
 float LevelMeter::linearToDb(float linearVal) noexcept
 {
@@ -113,35 +120,47 @@ void LevelMeter::paint(juce::Graphics &g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-    // Bottom labels area (12px)
-    auto labelArea = bounds.removeFromBottom(12.0f);
+    // Top Title Area (13px) for IN / OUT header
+    auto titleArea = bounds.removeFromTop(13.0f);
+    bounds.removeFromTop(2.0f); // Spacing between title and clip LEDs
 
-    // Top clip indicator area (8px)
-    auto clipArea = bounds.removeFromTop(8.0f);
+    // Top clip indicator area (6px)
+    auto clipArea = bounds.removeFromTop(6.0f);
     bounds.removeFromTop(4.0f); // Spacing below clip LED
 
     const float totalWidth = bounds.getWidth();
-    const float channelWidth = (totalWidth - 4.0f) * 0.5f;
     const float meterHeight = bounds.getHeight();
 
-    // 1. Draw Clip Indicators
-    auto clipBoundsL = juce::Rectangle<float>(bounds.getX(), clipArea.getY(), channelWidth, 6.0f);
-    auto clipBoundsR = juce::Rectangle<float>(bounds.getX() + channelWidth + 4.0f, clipArea.getY(), channelWidth, 6.0f);
+    // Determine layout: dual bars on the left, dB scale on the right
+    const float channelWidth = 6.5f;
+    const float channelGap = 2.0f;
+    const float barsWidth = (channelWidth * 2.0f) + channelGap;
+    const float barStartX = bounds.getX() + 1.0f;
+
+    // 1. Draw Title ("IN" or "OUT") at top
+    g.setFont(juce::Font(10.0f, juce::Font::bold));
+    g.setColour(title == "IN" ? GuiTokens::accentCyan : GuiTokens::accentAmber);
+    g.drawText(title, titleArea.getX(), titleArea.getY(), totalWidth, titleArea.getHeight(),
+               juce::Justification::centredLeft, false);
+
+    // 2. Draw Clip Indicators
+    auto clipBoundsL = juce::Rectangle<float>(barStartX, clipArea.getY(), channelWidth, 5.0f);
+    auto clipBoundsR = juce::Rectangle<float>(barStartX + channelWidth + channelGap, clipArea.getY(), channelWidth, 5.0f);
 
     g.setColour(clipL ? GuiTokens::accentRed : GuiTokens::accentRed.withAlpha(0.2f));
-    g.fillRoundedRectangle(clipBoundsL, 2.0f);
+    g.fillRoundedRectangle(clipBoundsL, 1.5f);
     g.setColour(clipR ? GuiTokens::accentRed : GuiTokens::accentRed.withAlpha(0.2f));
-    g.fillRoundedRectangle(clipBoundsR, 2.0f);
+    g.fillRoundedRectangle(clipBoundsR, 1.5f);
 
-    // 2. Draw Channel Background Tracks
-    auto barBoundsL = juce::Rectangle<float>(bounds.getX(), bounds.getY(), channelWidth, meterHeight);
-    auto barBoundsR = juce::Rectangle<float>(bounds.getX() + channelWidth + 4.0f, bounds.getY(), channelWidth, meterHeight);
+    // 3. Draw Channel Background Tracks
+    auto barBoundsL = juce::Rectangle<float>(barStartX, bounds.getY(), channelWidth, meterHeight);
+    auto barBoundsR = juce::Rectangle<float>(barStartX + channelWidth + channelGap, bounds.getY(), channelWidth, meterHeight);
 
     g.setColour(GuiTokens::knobTrackBg);
-    g.fillRoundedRectangle(barBoundsL, 2.0f);
-    g.fillRoundedRectangle(barBoundsR, 2.0f);
+    g.fillRoundedRectangle(barBoundsL, 1.5f);
+    g.fillRoundedRectangle(barBoundsR, 1.5f);
 
-    // 3. Draw Level Gradient Fill for Left Channel
+    // 4. Draw Level Gradient Fill for Left Channel
     const float normRmsL = dbToNormalized(linearToDb(currentRmsL));
     if (normRmsL > 0.001f)
     {
@@ -153,7 +172,7 @@ void LevelMeter::paint(juce::Graphics &g)
         if (normRmsL > 0.85f)
             grad.addColour(0.85, GuiTokens::accentAmber);
         g.setGradientFill(grad);
-        g.fillRoundedRectangle(activeBoundsL, 2.0f);
+        g.fillRoundedRectangle(activeBoundsL, 1.5f);
     }
 
     // Draw Level Gradient Fill for Right Channel
@@ -168,10 +187,10 @@ void LevelMeter::paint(juce::Graphics &g)
         if (normRmsR > 0.85f)
             grad.addColour(0.85, GuiTokens::accentAmber);
         g.setGradientFill(grad);
-        g.fillRoundedRectangle(activeBoundsR, 2.0f);
+        g.fillRoundedRectangle(activeBoundsR, 1.5f);
     }
 
-    // 4. Draw Peak Hold Ticks
+    // 5. Draw Peak Hold Ticks
     const float normPeakHoldL = dbToNormalized(linearToDb(peakHoldL));
     if (normPeakHoldL > 0.01f)
     {
@@ -188,13 +207,28 @@ void LevelMeter::paint(juce::Graphics &g)
         g.fillRect(barBoundsR.getX(), tickY, channelWidth, 2.0f);
     }
 
-    // 5. Draw Channel L/R Text
-    g.setFont(juce::Font(9.0f, juce::Font::bold));
-    g.setColour(GuiTokens::textSecondary);
-    g.drawText("L", barBoundsL.getX(), labelArea.getY(), channelWidth, labelArea.getHeight(),
-               juce::Justification::centred, false);
-    g.drawText("R", barBoundsR.getX(), labelArea.getY(), channelWidth, labelArea.getHeight(),
-               juce::Justification::centred, false);
+    // 6. Draw Vertical dB Scale Markings (-60 dB to 0 dB)
+    const float scaleStartX = barStartX + barsWidth + 3.0f;
+    const float textWidth = std::max(16.0f, totalWidth - scaleStartX);
+
+    const float dbLevels[] = { 0.0f, -6.0f, -12.0f, -18.0f, -24.0f, -36.0f, -48.0f, -60.0f };
+    for (float db : dbLevels)
+    {
+        const float norm = dbToNormalized(db);
+        const float y = bounds.getY() + meterHeight * (1.0f - norm);
+
+        // Tick mark
+        g.setColour(std::abs(db) < 0.1f ? GuiTokens::accentRed : GuiTokens::outlineBorder.withAlpha(0.8f));
+        g.drawHorizontalLine(static_cast<int>(y), scaleStartX, scaleStartX + 3.0f);
+
+        // Number label
+        g.setFont(juce::Font(7.5f, juce::Font::plain));
+        g.setColour(std::abs(db) < 0.1f ? GuiTokens::accentRed
+                                        : (db >= -18.0f ? GuiTokens::textSecondary : GuiTokens::textMuted));
+        const juce::String text = (std::abs(db) < 0.1f) ? "0" : juce::String(static_cast<int>(db));
+        g.drawText(text, scaleStartX + 4.0f, y - 5.0f, textWidth, 10.0f,
+                   juce::Justification::centredLeft, false);
+    }
 }
 
 void LevelMeter::resized()

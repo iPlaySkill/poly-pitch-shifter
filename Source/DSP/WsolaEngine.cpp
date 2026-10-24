@@ -44,21 +44,21 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Optimized for polyphonic electric guitar tracking:
-    // Window length 512 samples at 48 kHz (10.67 ms) covers down to ~93 Hz fundamentals
-    // Max search offset 256 samples (5.33 ms, total search range 10.67 ms)
-    // 1024 samples at 96 kHz
+    // Extended window and search sizes optimized for electric guitar down to Drop C (65.4 Hz)
+    // and Drop A (55.0 Hz): 1024 samples at 48 kHz (21.33 ms) covers down to ~46 Hz fundamentals
+    // Max search offset 512 samples gives 1024-sample search interval
+    // 2048 samples at 96 kHz
     if (currentSampleRate >= 88200.0)
+    {
+        windowSize = 2048;
+        hopSize = 1024;
+        maxSearchOffset = 1024;
+    }
+    else
     {
         windowSize = 1024;
         hopSize = 512;
         maxSearchOffset = 512;
-    }
-    else
-    {
-        windowSize = 512;
-        hopSize = 256;
-        maxSearchOffset = 256;
     }
 }
 
@@ -95,12 +95,12 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
-    // Constant algorithmic latency of 10.67 ms across all host sample rates
-    // (512 samples at 44.1/48 kHz, 1024 samples at 88.2/96 kHz)
+    // Algorithmic latency corresponding to lookback window
+    // (1024 samples at 44.1/48 kHz = 21.33 ms, 2048 samples at 88.2/96 kHz)
     if (currentSampleRate >= 88200.0)
-        return 1024;
+        return 2048;
 
-    return 512;
+    return 1024;
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -113,7 +113,7 @@ void WsolaEngine::processWsolaFrame() noexcept
                                       ? (synthesisWritePos - synthesisReadPos)
                                       : (synthCap - synthesisReadPos + synthesisWritePos);
 
-    // Target latency in samples (e.g. 512 at 48k)
+    // Target latency in samples (e.g. 1024 at 48k)
     const double targetLatency = static_cast<double>(getLatencyInSamples());
 
     // Because the resampler advances through synthesis audio at rate 'resampleRatio = currentPitchRatio',
@@ -144,14 +144,7 @@ void WsolaEngine::processWsolaFrame() noexcept
 
     int bestDelta = 0;
 
-    if (transientClarityEnabled && transientOnset)
-    {
-        // Transient-synchronized grain alignment (Neural DSP / Helix style):
-        // Snap directly to the transient onset without cross-correlation smearing!
-        bestDelta = 0;
-        transientOnset = false;
-    }
-    else if (isFirstFrame)
+    if (isFirstFrame)
     {
         for (size_t ch = 0; ch < allocatedChannels; ++ch)
         {

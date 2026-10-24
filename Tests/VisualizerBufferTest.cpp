@@ -22,13 +22,20 @@ int main()
     // 2. Push audio and verify telemetry updates
     std::vector<float> dryBlock(256, 0.5f);
     std::vector<float> wetBlock(256, -0.75f);
-    buffer.pushAudio(dryBlock.data(), wetBlock.data(), 256, true, 0.8f, 0.7f, 0.4f, 0.35f, 12500.0f);
+    buffer.pushAudioDual(dryBlock.data(), wetBlock.data(), 256, true,
+                         0.6f, 0.55f, 0.3f, 0.28f,
+                         0.8f, 0.7f, 0.4f, 0.35f,
+                         12500.0f);
 
     auto t1 = buffer.getLatestTelemetry();
-    assert(std::abs(t1.peakL - 0.8f) < 1e-4f);
-    assert(std::abs(t1.peakR - 0.7f) < 1e-4f);
-    assert(std::abs(t1.rmsL - 0.4f) < 1e-4f);
-    assert(std::abs(t1.rmsR - 0.35f) < 1e-4f);
+    assert(std::abs(t1.inPeakL - 0.6f) < 1e-4f);
+    assert(std::abs(t1.inPeakR - 0.55f) < 1e-4f);
+    assert(std::abs(t1.inRmsL - 0.3f) < 1e-4f);
+    assert(std::abs(t1.inRmsR - 0.28f) < 1e-4f);
+    assert(std::abs(t1.outPeakL - 0.8f) < 1e-4f);
+    assert(std::abs(t1.outPeakR - 0.7f) < 1e-4f);
+    assert(std::abs(t1.outRmsL - 0.4f) < 1e-4f);
+    assert(std::abs(t1.outRmsR - 0.35f) < 1e-4f);
     assert(t1.isTransient);
     assert(t1.pulseCount == 1);
     assert(std::abs(t1.cutoffHz - 12500.0f) < 1e-4f);

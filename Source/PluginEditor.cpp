@@ -5,43 +5,64 @@
 PolyPitchShifterAudioProcessorEditor::PolyPitchShifterAudioProcessorEditor(PolyPitchShifterAudioProcessor &p)
     : AudioProcessorEditor(&p), audioProcessor(p),
       masterBypassToggle("BYPASS", pps::gui::GuiTokens::accentRed),
-      pitchPanel("PITCH & ENGINE", pps::gui::GuiTokens::accentCyan),
+      pitchPanel("INPUT & PITCH", pps::gui::GuiTokens::accentCyan),
+      inputLevelMeter("IN"),
+      inputGainKnob("In Gain", pps::gui::RotaryKnob::UnitType::Decibels, pps::params::inputGainDefault,
+                    pps::params::inputGainMin, pps::params::inputGainMax, 0.1),
       shiftKnob("Shift", pps::gui::RotaryKnob::UnitType::Semitones, pps::params::shiftDefault,
                 pps::params::shiftMin, pps::params::shiftMax, 1.0),
       fineKnob("Fine", pps::gui::RotaryKnob::UnitType::Cents, pps::params::fineDefault,
                pps::params::fineMin, pps::params::fineMax, 1.0),
       monitorPanel("REAL-TIME MONITOR", pps::gui::GuiTokens::accentCyan),
-      dynamicsPanel("DYNAMICS & MIX", pps::gui::GuiTokens::accentAmber),
-      sensitivityKnob("Sensitivity", pps::gui::RotaryKnob::UnitType::Multiplier,
-                      pps::params::transientSensitivityDefault, pps::params::transientSensitivityMin,
-                      pps::params::transientSensitivityMax, 0.05),
-      transientBypassToggle("ATTACK CLARITY", pps::gui::GuiTokens::accentAmber),
+      dynamicsPanel("OUTPUT & MIX", pps::gui::GuiTokens::accentAmber),
       mixKnob("Mix", pps::gui::RotaryKnob::UnitType::Percent, pps::params::mixDefault,
               pps::params::mixMin, pps::params::mixMax, 1.0),
-      gainKnob("Gain", pps::gui::RotaryKnob::UnitType::Decibels, pps::params::gainDefault,
-               pps::params::gainMin, pps::params::gainMax, 0.1)
+      gainKnob("Out Gain", pps::gui::RotaryKnob::UnitType::Decibels, pps::params::gainDefault,
+               pps::params::gainMin, pps::params::gainMax, 0.1),
+      outputLevelMeter("OUT")
 {
     setLookAndFeel(&lookAndFeel);
 
     // Setup slider names for accent color mapping in LookAndFeel
+    inputGainKnob.getSlider().setName("Input Gain");
     shiftKnob.getSlider().setName("Shift");
     fineKnob.getSlider().setName("Fine");
-    sensitivityKnob.getSlider().setName("Transient Sensitivity");
     mixKnob.getSlider().setName("Mix");
     gainKnob.getSlider().setName("Gain");
+
+    // Setup Preset ComboBox
+    presetComboBox.setTextWhenNothingSelected("Default (Zero Shift)");
+    presetComboBox.addItem("--- Factory Presets ---", 100);
+    presetComboBox.setItemEnabled(100, false);
+    presetComboBox.addItem("Default (Zero Shift)", 1);
+    presetComboBox.addItem("Drop D (-2 st)", 2);
+    presetComboBox.addItem("Drop C# (-3 st)", 3);
+    presetComboBox.addItem("Drop C (-4 st)", 4);
+    presetComboBox.addItem("Drop B (-5 st)", 5);
+    presetComboBox.addItem("Drop A (-7 st)", 6);
+    presetComboBox.addItem("Octave Down (-12 st)", 7);
+    presetComboBox.addItem("Octave Up (+12 st)", 8);
+    presetComboBox.addItem("Virtual Capo (+1 st)", 9);
+    presetComboBox.addItem("Virtual Capo (+2 st)", 10);
+    presetComboBox.addItem("--- User Presets ---", 200);
+    presetComboBox.setItemEnabled(200, false);
+    presetComboBox.addItem("Save Preset...", 101);
+    presetComboBox.addItem("Load Preset...", 102);
+    presetComboBox.setSelectedId(1, juce::dontSendNotification);
 
     // Bind parameters via attachments
     auto &apvts = audioProcessor.getAPVTS();
     masterBypassToggle.attach(apvts, pps::params::pidBypass);
+    inputGainKnob.attach(apvts, pps::params::pidInputGain);
     shiftKnob.attach(apvts, pps::params::pidShift);
     fineKnob.attach(apvts, pps::params::pidFine);
-    sensitivityKnob.attach(apvts, pps::params::pidTransientSensitivity);
-    transientBypassToggle.attach(apvts, pps::params::pidTransientBypass);
     mixKnob.attach(apvts, pps::params::pidMix);
     gainKnob.attach(apvts, pps::params::pidGain);
 
-    // Section 1: Pitch Panel
+    // Section 1: Input & Pitch Engine Panel
     addAndMakeVisible(pitchPanel);
+    pitchPanel.addAndMakeVisible(inputLevelMeter);
+    pitchPanel.addAndMakeVisible(inputGainKnob);
     pitchPanel.addAndMakeVisible(shiftKnob);
     pitchPanel.addAndMakeVisible(fineKnob);
 
@@ -50,15 +71,14 @@ PolyPitchShifterAudioProcessorEditor::PolyPitchShifterAudioProcessorEditor(PolyP
     monitorPanel.addAndMakeVisible(waveformVisualizer);
     monitorPanel.addAndMakeVisible(spectrumVisualizer);
 
-    // Section 3: Dynamics & Mix Panel
+    // Section 3: Output & Mix Panel
     addAndMakeVisible(dynamicsPanel);
-    dynamicsPanel.addAndMakeVisible(sensitivityKnob);
-    dynamicsPanel.addAndMakeVisible(transientBypassToggle);
     dynamicsPanel.addAndMakeVisible(mixKnob);
     dynamicsPanel.addAndMakeVisible(gainKnob);
-    dynamicsPanel.addAndMakeVisible(levelMeter);
+    dynamicsPanel.addAndMakeVisible(outputLevelMeter);
 
     // Header controls
+    addAndMakeVisible(presetComboBox);
     addAndMakeVisible(masterBypassToggle);
 
     // Preallocate local audio buffers for timer streaming
@@ -89,12 +109,13 @@ void PolyPitchShifterAudioProcessorEditor::timerCallback()
 
     if (read > 0)
     {
-        waveformVisualizer.pushAudioData(dryReadBuffer.data(), wetReadBuffer.data(), read, telemetry.isTransient);
+        waveformVisualizer.pushAudioData(dryReadBuffer.data(), wetReadBuffer.data(), read, false);
         spectrumVisualizer.pushAudioBlock(wetReadBuffer.data(), read, telemetry.cutoffHz,
                                           audioProcessor.getCurrentSampleRate());
     }
 
-    levelMeter.updateLevels(telemetry.peakL, telemetry.peakR, telemetry.rmsL, telemetry.rmsR);
+    inputLevelMeter.updateLevels(telemetry.inPeakL, telemetry.inPeakR, telemetry.inRmsL, telemetry.inRmsR);
+    outputLevelMeter.updateLevels(telemetry.outPeakL, telemetry.outPeakR, telemetry.outRmsL, telemetry.outRmsR);
 
     // Check if host latency changed (for PDC badge update)
     const int currentLatency = audioProcessor.getLatencySamples();
@@ -132,24 +153,29 @@ void PolyPitchShifterAudioProcessorEditor::paint(juce::Graphics &g)
     g.setColour(pps::gui::GuiTokens::textSecondary);
     g.drawText("PRO GUITAR WSOLA DSP | 64-BIT PRECISION", 18, 32, 280, 14, juce::Justification::centredLeft, false);
 
-    // Latency Telemetry Badge (Middle Header)
+    // Latency Telemetry Badge (Header)
     const int latencySamples = audioProcessor.getLatencySamples();
     const double sr = audioProcessor.getCurrentSampleRate();
     const double latencyMs = (sr > 1000.0) ? (static_cast<double>(latencySamples) * 1000.0 / sr) : 0.0;
 
     std::ostringstream ss;
-    ss << "PDC LATENCY: " << latencySamples << " SPL (" << std::fixed << std::setprecision(1) << latencyMs << " MS)";
+    ss << "PDC: " << latencySamples << " SPL (" << std::fixed << std::setprecision(1) << latencyMs << " MS)";
     juce::String latencyStr(ss.str());
 
-    auto badgeBounds = juce::Rectangle<float>(static_cast<float>(getWidth() / 2 - 110), 14.0f, 220.0f, 24.0f);
-    g.setColour(pps::gui::GuiTokens::knobTrackBg);
-    g.fillRoundedRectangle(badgeBounds, 4.0f);
-    g.setColour(pps::gui::GuiTokens::outlineBorder);
-    g.drawRoundedRectangle(badgeBounds, 4.0f, 1.0f);
+    const float badgeX = static_cast<float>(presetComboBox.getRight() + 16);
+    const float badgeWidth = static_cast<float>(masterBypassToggle.getX() - badgeX - 16);
+    if (badgeWidth >= 120.0f)
+    {
+        auto badgeBounds = juce::Rectangle<float>(badgeX, 14.0f, badgeWidth, 24.0f);
+        g.setColour(pps::gui::GuiTokens::knobTrackBg);
+        g.fillRoundedRectangle(badgeBounds, 4.0f);
+        g.setColour(pps::gui::GuiTokens::outlineBorder);
+        g.drawRoundedRectangle(badgeBounds, 4.0f, 1.0f);
 
-    g.setFont(juce::Font(10.0f, juce::Font::bold));
-    g.setColour(pps::gui::GuiTokens::textSecondary);
-    g.drawText(latencyStr, badgeBounds, juce::Justification::centred, false);
+        g.setFont(juce::Font(10.0f, juce::Font::bold));
+        g.setColour(pps::gui::GuiTokens::textSecondary);
+        g.drawText(latencyStr, badgeBounds, juce::Justification::centred, false);
+    }
 
     // 3. Bottom Footer Bar (24px)
     auto footerBounds = juce::Rectangle<float>(0.0f, static_cast<float>(getHeight() - 24),
@@ -176,6 +202,7 @@ void PolyPitchShifterAudioProcessorEditor::resized()
     // 1. Top Header Area (52px)
     auto headerArea = totalArea.removeFromTop(52);
     masterBypassToggle.setBounds(headerArea.getRight() - 108, 13, 94, 26);
+    presetComboBox.setBounds(275, 12, 195, 28);
 
     // 2. Bottom Footer Area (24px)
     totalArea.removeFromBottom(24);
@@ -183,39 +210,40 @@ void PolyPitchShifterAudioProcessorEditor::resized()
     // 3. Central Working Bay
     auto workArea = totalArea.reduced(10, 8);
 
-    // Left Column: Pitch & Engine (width 165px)
-    const int leftColWidth = 165;
+    // Left Column: Input & Pitch Engine (width 225px)
+    const int leftColWidth = 225;
     auto leftArea = workArea.removeFromLeft(leftColWidth);
     pitchPanel.setBounds(leftArea);
 
     auto pitchContent = pitchPanel.getContentBounds();
-    const int knobHeight = pitchContent.getHeight() / 2;
-    shiftKnob.setBounds(pitchContent.removeFromTop(knobHeight).reduced(4, 4));
-    fineKnob.setBounds(pitchContent.reduced(4, 4));
+    // Input Level Meter takes 48px on the left of pitchPanel
+    auto inMeterArea = pitchContent.removeFromLeft(48);
+    inputLevelMeter.setBounds(inMeterArea.reduced(2, 4));
 
-    // Right Column: Dynamics & Mix (width 245px)
-    const int rightColWidth = 245;
+    // The rest of pitchContent has 3 knobs vertically: In Gain, Shift, Fine
+    auto pitchKnobs = pitchContent.reduced(2, 2);
+    const int knobSlotHeight = pitchKnobs.getHeight() / 3;
+
+    inputGainKnob.setBounds(pitchKnobs.removeFromTop(knobSlotHeight).reduced(2, 2));
+    shiftKnob.setBounds(pitchKnobs.removeFromTop(knobSlotHeight).reduced(2, 2));
+    fineKnob.setBounds(pitchKnobs.reduced(2, 2));
+
+    // Right Column: Output & Mix (width 205px)
+    const int rightColWidth = 205;
     auto rightArea = workArea.removeFromRight(rightColWidth);
     dynamicsPanel.setBounds(rightArea);
 
     auto dynContent = dynamicsPanel.getContentBounds();
+    // Output Level Meter takes 48px on the far right of dynamicsPanel
+    auto outMeterArea = dynContent.removeFromRight(48);
+    outputLevelMeter.setBounds(outMeterArea.reduced(2, 4));
 
-    // Meter takes 34px on the far right of the dynamics panel
-    auto meterArea = dynContent.removeFromRight(34);
-    levelMeter.setBounds(meterArea.reduced(2, 4));
+    // The rest of dynContent has 2 knobs vertically: Mix, Out Gain
+    auto dynKnobs = dynContent.reduced(2, 2);
+    const int dynKnobSlotHeight = dynKnobs.getHeight() / 2;
 
-    // Remaining dynamics content has Transient section (top) and Mix/Gain section (bottom)
-    auto dynControls = dynContent.reduced(4, 2);
-    const int halfDynHeight = dynControls.getHeight() / 2;
-
-    auto topDynArea = dynControls.removeFromTop(halfDynHeight);
-    sensitivityKnob.setBounds(topDynArea.removeFromTop(topDynArea.getHeight() - 30).reduced(2));
-    transientBypassToggle.setBounds(topDynArea.removeFromBottom(26).reduced(4, 0));
-
-    auto botDynArea = dynControls;
-    const int halfBotWidth = botDynArea.getWidth() / 2;
-    mixKnob.setBounds(botDynArea.removeFromLeft(halfBotWidth).reduced(2));
-    gainKnob.setBounds(botDynArea.reduced(2));
+    mixKnob.setBounds(dynKnobs.removeFromTop(dynKnobSlotHeight).reduced(2, 4));
+    gainKnob.setBounds(dynKnobs.reduced(2, 4));
 
     // Middle Column: Real-time Monitor (Waveform & Spectrum)
     workArea.reduce(8, 0); // Margin between columns

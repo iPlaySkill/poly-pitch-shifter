@@ -13,8 +13,11 @@ namespace pps::gui {
 class LevelMeter : public juce::Component
 {
 public:
-    LevelMeter();
+    explicit LevelMeter(const juce::String &meterTitle = "OUT");
     ~LevelMeter() override;
+
+    void setTitle(const juce::String &newTitle);
+    juce::String getTitle() const noexcept { return title; }
 
     void paint(juce::Graphics &g) override;
     void resized() override;
@@ -50,6 +53,8 @@ private:
     bool clipR{false};
     int clipHoldTimerL{0};
     int clipHoldTimerR{0};
+
+    juce::String title{"OUT"};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
 };

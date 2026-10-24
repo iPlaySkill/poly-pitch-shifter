@@ -19,12 +19,12 @@ public:
     void paint(juce::Graphics &) override;
     void resized() override;
 
-    static constexpr int defaultWidth = 780;
+    static constexpr int defaultWidth = 840;
     static constexpr int defaultHeight = 520;
-    static constexpr int minWidth = 680;
+    static constexpr int minWidth = 720;
     static constexpr int minHeight = 460;
-    static constexpr int maxWidth = 1200;
-    static constexpr int maxHeight = 800;
+    static constexpr int maxWidth = 1400;
+    static constexpr int maxHeight = 900;
 
 private:
     void timerCallback() override;
@@ -34,9 +34,12 @@ private:
 
     // Header Controls
     pps::gui::PillToggle masterBypassToggle;
+    juce::ComboBox presetComboBox;
 
-    // Section 1: Pitch & Engine
+    // Section 1: Input & Pitch Engine
     pps::gui::ControlPanel pitchPanel;
+    pps::gui::LevelMeter inputLevelMeter;
+    pps::gui::RotaryKnob inputGainKnob;
     pps::gui::RotaryKnob shiftKnob;
     pps::gui::RotaryKnob fineKnob;
 
@@ -45,13 +48,11 @@ private:
     pps::gui::WaveformVisualizer waveformVisualizer;
     pps::gui::SpectrumVisualizer spectrumVisualizer;
 
-    // Section 3: Dynamics & Mix
+    // Section 3: Output & Mix
     pps::gui::ControlPanel dynamicsPanel;
-    pps::gui::RotaryKnob sensitivityKnob;
-    pps::gui::PillToggle transientBypassToggle;
     pps::gui::RotaryKnob mixKnob;
     pps::gui::RotaryKnob gainKnob;
-    pps::gui::LevelMeter levelMeter;
+    pps::gui::LevelMeter outputLevelMeter;
 
     // Local telemetry cache
     std::vector<float> dryReadBuffer;

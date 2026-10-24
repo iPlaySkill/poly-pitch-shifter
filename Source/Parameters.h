@@ -10,10 +10,14 @@ inline constexpr const char *pidShift = "shift";
 inline constexpr const char *pidFine = "fine";
 inline constexpr const char *pidMix = "mix";
 inline constexpr const char *pidGain = "gain";
+inline constexpr const char *pidInputGain = "input_gain";
 inline constexpr const char *pidTransientBypass = "transient_bypass";
 inline constexpr const char *pidTransientSensitivity = "transient_sensitivity";
 
 // Parameter ranges
+inline constexpr float inputGainMin = -24.0f;
+inline constexpr float inputGainMax = +12.0f;
+inline constexpr float inputGainDefault = 0.0f;
 inline constexpr float shiftMin = -12.0f;
 inline constexpr float shiftMax = +12.0f;
 inline constexpr float shiftDefault = 0.0f;
