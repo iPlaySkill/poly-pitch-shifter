@@ -46,9 +46,10 @@ int main()
 
     // 1. Verify total number of parameters registered in AudioProcessor
     const auto &params = processor.getParameters();
-    assert(params.size() == 7);
+    assert(params.size() == 8);
 
     // 2. Verify all parameter IDs are present and valid
+    assert(apvts.getParameter(pps::params::pidInputGain) != nullptr);
     assert(apvts.getParameter(pps::params::pidBypass) != nullptr);
     assert(apvts.getParameter(pps::params::pidShift) != nullptr);
     assert(apvts.getParameter(pps::params::pidFine) != nullptr);
@@ -58,6 +59,7 @@ int main()
     assert(apvts.getParameter(pps::params::pidTransientSensitivity) != nullptr);
 
     // 3. Verify parameter default values
+    assert(apvts.getRawParameterValue(pps::params::pidInputGain)->load() == 0.0f);
     assert(apvts.getRawParameterValue(pps::params::pidBypass)->load() == 0.0f);
     assert(apvts.getRawParameterValue(pps::params::pidShift)->load() == 0.0f);
     assert(apvts.getRawParameterValue(pps::params::pidFine)->load() == 0.0f);
@@ -66,7 +68,7 @@ int main()
     assert(apvts.getRawParameterValue(pps::params::pidTransientBypass)->load() == 1.0f);
     assert(std::abs(apvts.getRawParameterValue(pps::params::pidTransientSensitivity)->load() - 1.8f) < 0.01f);
 
-    std::cout << "  Passed: All 7 plugin parameters uniquely registered in layout with correct defaults." << std::endl;
+    std::cout << "  Passed: All 8 plugin parameters uniquely registered in layout with correct defaults." << std::endl;
     std::cout << "[PASSED] ParametersTest succeeded." << std::endl;
     return 0;
 }

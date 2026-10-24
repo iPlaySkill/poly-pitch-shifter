@@ -90,10 +90,11 @@ bool TransientDetector::processSample(const float *channelSamples, size_t numCha
             det.backgroundLevel = 1e-6f;
 
         // 5. Adaptive dynamic threshold calculation
-        // Higher sensitivity = lower threshold needed to trigger
+        // Higher sensitivity = lower threshold and lower jump ratio needed to trigger
         const float threshold = det.backgroundLevel * (6.0f / sensitivityMultiplier) + 0.001f;
+        const float jumpRatio = std::clamp(2.0f / sensitivityMultiplier, 1.15f, 3.5f);
 
-        if (det.hfEnergyEnv > threshold && hfEnergy > det.hfEnergyEnv * 1.5f)
+        if (det.hfEnergyEnv > threshold && hfEnergy > det.hfEnergyEnv * jumpRatio)
         {
             trigger = true;
         }

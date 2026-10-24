@@ -136,6 +136,12 @@ private:
 
     // Per-sample transient activation mask
     std::vector<float> activationMask;
+
+    // Circular delay buffer for latency-aligned transient activation envelope
+    std::vector<float> transientDelayBuffer;
+
+    // Previous wet sample per channel for high-frequency edge calculation
+    std::vector<float> prevWetSamples;
 };
 
 } // namespace pps

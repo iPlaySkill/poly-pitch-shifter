@@ -27,6 +27,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
                                                                  mixDefault,
                                                                  juce::AudioParameterFloatAttributes().withLabel("%")));
 
+    // Input Gain [-24 dB, +12 dB]
+    auto inGainRange = juce::NormalisableRange<float>(inputGainMin, inputGainMax, 0.1f);
+    params.push_back(
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{pidInputGain, 1}, "Input Gain", inGainRange,
+                                                    inputGainDefault,
+                                                    juce::AudioParameterFloatAttributes().withLabel("dB")));
+
     // Output Gain [-24 dB, +12 dB]
     auto gainRange = juce::NormalisableRange<float>(gainMin, gainMax, 0.1f);
     params.push_back(

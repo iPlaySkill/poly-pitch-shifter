@@ -65,6 +65,10 @@ public:
     {
         return gainParam ? gainParam->load() : 0.0f;
     }
+    float getInputGainDb() const noexcept
+    {
+        return inputGainParam ? inputGainParam->load() : 0.0f;
+    }
     bool isTransientBypassEnabled() const noexcept
     {
         return transientBypassParam == nullptr || transientBypassParam->load() > 0.5f;
@@ -104,6 +108,7 @@ private:
     std::atomic<float> *fineParam = nullptr;
     std::atomic<float> *mixParam = nullptr;
     std::atomic<float> *gainParam = nullptr;
+    std::atomic<float> *inputGainParam = nullptr;
     std::atomic<float> *transientBypassParam = nullptr;
     std::atomic<float> *transientSensitivityParam = nullptr;
 
@@ -114,6 +119,7 @@ private:
     pps::TransientBypassRouter transientRouter;
     pps::SmoothedGain smoothedMix;
     pps::SmoothedGain smoothedGain;
+    pps::SmoothedGain smoothedInputGain;
     pps::gui::VisualizerBuffer visualizerBuffer;
 
     juce::AudioBuffer<float> dryBuffer;

@@ -37,20 +37,27 @@ public:
     // =========================================================================
 
     /**
-     * Pushes audio blocks and telemetry from the audio thread into the FIFO.
+     * Pushes audio blocks and dual (Input & Output) telemetry from the audio thread into the FIFO.
      */
-    void pushAudio(const float *dry, const float *wet, int numSamples, bool isTransient,
-                   float inPeakL, float inPeakR, float inRmsL, float inRmsR,
-                   float cutoffHz = 20000.0f) noexcept
+    void pushAudioDual(const float *dry, const float *wet, int numSamples, bool isTransient,
+                       float inPeakL, float inPeakR, float inRmsL, float inRmsR,
+                       float outPeakL, float outPeakR, float outRmsL, float outRmsR,
+                       float cutoffHz = 20000.0f) noexcept
     {
         if (numSamples <= 0 || dry == nullptr || wet == nullptr)
             return;
 
         // Update telemetry atomics with relaxed/release semantics
-        peakLeft.store(inPeakL, std::memory_order_relaxed);
-        peakRight.store(inPeakR, std::memory_order_relaxed);
-        rmsLeft.store(inRmsL, std::memory_order_relaxed);
-        rmsRight.store(inRmsR, std::memory_order_relaxed);
+        inputPeakLeft.store(inPeakL, std::memory_order_relaxed);
+        inputPeakRight.store(inPeakR, std::memory_order_relaxed);
+        inputRmsLeft.store(inRmsL, std::memory_order_relaxed);
+        inputRmsRight.store(inRmsR, std::memory_order_relaxed);
+
+        peakLeft.store(outPeakL, std::memory_order_relaxed);
+        peakRight.store(outPeakR, std::memory_order_relaxed);
+        rmsLeft.store(outRmsL, std::memory_order_relaxed);
+        rmsRight.store(outRmsR, std::memory_order_relaxed);
+
         transientActive.store(isTransient, std::memory_order_relaxed);
         antiAliasingCutoffHz.store(cutoffHz, std::memory_order_relaxed);
 
@@ -70,6 +77,17 @@ public:
         }
 
         writePos.store(currentWrite, std::memory_order_release);
+    }
+
+    /**
+     * Legacy helper pushing single peak/rms for backwards compatibility.
+     */
+    void pushAudio(const float *dry, const float *wet, int numSamples, bool isTransient,
+                   float inPeakL, float inPeakR, float inRmsL, float inRmsR,
+                   float cutoffHz = 20000.0f) noexcept
+    {
+        pushAudioDual(dry, wet, numSamples, isTransient, inPeakL, inPeakR, inRmsL, inRmsR,
+                      inPeakL, inPeakR, inRmsL, inRmsR, cutoffHz);
     }
 
     // =========================================================================
@@ -103,10 +121,21 @@ public:
 
     struct TelemetryData
     {
+        float inPeakL{0.0f};
+        float inPeakR{0.0f};
+        float inRmsL{0.0f};
+        float inRmsR{0.0f};
+        float outPeakL{0.0f};
+        float outPeakR{0.0f};
+        float outRmsL{0.0f};
+        float outRmsR{0.0f};
+
+        // Legacy compatibility
         float peakL{0.0f};
         float peakR{0.0f};
         float rmsL{0.0f};
         float rmsR{0.0f};
+
         bool isTransient{false};
         uint32_t pulseCount{0};
         float cutoffHz{20000.0f};
@@ -115,10 +144,21 @@ public:
     TelemetryData getLatestTelemetry() const noexcept
     {
         TelemetryData data;
-        data.peakL = peakLeft.load(std::memory_order_relaxed);
-        data.peakR = peakRight.load(std::memory_order_relaxed);
-        data.rmsL = rmsLeft.load(std::memory_order_relaxed);
-        data.rmsR = rmsRight.load(std::memory_order_relaxed);
+        data.inPeakL = inputPeakLeft.load(std::memory_order_relaxed);
+        data.inPeakR = inputPeakRight.load(std::memory_order_relaxed);
+        data.inRmsL = inputRmsLeft.load(std::memory_order_relaxed);
+        data.inRmsR = inputRmsRight.load(std::memory_order_relaxed);
+
+        data.outPeakL = peakLeft.load(std::memory_order_relaxed);
+        data.outPeakR = peakRight.load(std::memory_order_relaxed);
+        data.outRmsL = rmsLeft.load(std::memory_order_relaxed);
+        data.outRmsR = rmsRight.load(std::memory_order_relaxed);
+
+        data.peakL = data.outPeakL;
+        data.peakR = data.outPeakR;
+        data.rmsL = data.outRmsL;
+        data.rmsR = data.outRmsR;
+
         data.isTransient = transientActive.load(std::memory_order_relaxed);
         data.pulseCount = transientPulseCounter.load(std::memory_order_relaxed);
         data.cutoffHz = antiAliasingCutoffHz.load(std::memory_order_relaxed);
@@ -132,13 +172,18 @@ private:
     alignas(64) std::atomic<size_t> writePos;
     alignas(64) std::atomic<size_t> readPos;
 
-    alignas(64) std::atomic<float> peakLeft;
-    std::atomic<float> peakRight;
-    std::atomic<float> rmsLeft;
-    std::atomic<float> rmsRight;
-    std::atomic<bool> transientActive;
-    std::atomic<uint32_t> transientPulseCounter;
-    std::atomic<float> antiAliasingCutoffHz;
+    alignas(64) std::atomic<float> inputPeakLeft{0.0f};
+    std::atomic<float> inputPeakRight{0.0f};
+    std::atomic<float> inputRmsLeft{0.0f};
+    std::atomic<float> inputRmsRight{0.0f};
+
+    alignas(64) std::atomic<float> peakLeft{0.0f};
+    std::atomic<float> peakRight{0.0f};
+    std::atomic<float> rmsLeft{0.0f};
+    std::atomic<float> rmsRight{0.0f};
+    std::atomic<bool> transientActive{false};
+    std::atomic<uint32_t> transientPulseCounter{0};
+    std::atomic<float> antiAliasingCutoffHz{20000.0f};
 };
 
 } // namespace pps::gui

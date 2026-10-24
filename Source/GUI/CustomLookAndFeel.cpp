@@ -16,6 +16,16 @@ CustomLookAndFeel::CustomLookAndFeel()
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::rotarySliderFillColourId, GuiTokens::accentCyan);
     setColour(juce::Slider::rotarySliderOutlineColourId, GuiTokens::knobTrackBg);
+
+    // ComboBox & PopupMenu
+    setColour(juce::ComboBox::backgroundColourId, GuiTokens::knobTrackBg);
+    setColour(juce::ComboBox::textColourId, GuiTokens::textPrimary);
+    setColour(juce::ComboBox::outlineColourId, GuiTokens::outlineBorder);
+    setColour(juce::ComboBox::arrowColourId, GuiTokens::accentCyan);
+    setColour(juce::PopupMenu::backgroundColourId, GuiTokens::panelBg);
+    setColour(juce::PopupMenu::textColourId, GuiTokens::textPrimary);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, GuiTokens::accentCyan.withAlpha(0.25f));
+    setColour(juce::PopupMenu::highlightedTextColourId, GuiTokens::accentCyan);
 }
 
 juce::Colour CustomLookAndFeel::getSliderAccentColour(const juce::Slider &slider)
@@ -23,10 +33,13 @@ juce::Colour CustomLookAndFeel::getSliderAccentColour(const juce::Slider &slider
     const juce::String name = slider.getName().toLowerCase();
     const juce::String id = slider.getComponentID().toLowerCase();
 
-    if (name.contains("transient") || id.contains("transient"))
+    if (name.contains("input") || id.contains("input"))
+        return GuiTokens::accentCyan;
+
+    if (name.contains("mix") || id.contains("mix"))
         return GuiTokens::accentAmber;
 
-    if (name.contains("mix") || id.contains("mix") || name.contains("gain") || id.contains("gain"))
+    if (name.contains("gain") || id.contains("gain"))
         return GuiTokens::accentGreen;
 
     return GuiTokens::accentCyan;
@@ -260,6 +273,40 @@ void CustomLookAndFeel::drawLinearSlider(juce::Graphics &g, int x, int y, int wi
         g.setColour(GuiTokens::textPrimary);
         g.fillRoundedRectangle(thumbBounds, 3.0f);
     }
+}
+
+void CustomLookAndFeel::drawComboBox(juce::Graphics &g, int width, int height, bool isButtonDown,
+                                     int buttonX, int buttonY, int buttonW, int buttonH,
+                                     juce::ComboBox &box)
+{
+    juce::ignoreUnused(isButtonDown, buttonX, buttonY, buttonW, buttonH);
+    auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)).reduced(1.0f);
+
+    // Background
+    g.setColour(GuiTokens::knobTrackBg);
+    g.fillRoundedRectangle(bounds, 4.0f);
+
+    // Border with neon cyan accent if focused
+    g.setColour(box.hasKeyboardFocus(true) ? GuiTokens::accentCyan : GuiTokens::outlineBorder);
+    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+    // Down-chevron indicator
+    const float arrowRight = static_cast<float>(width - 12);
+    const float arrowY = static_cast<float>(height) * 0.5f;
+
+    juce::Path arrow;
+    arrow.startNewSubPath(arrowRight - 8.0f, arrowY - 2.5f);
+    arrow.lineTo(arrowRight - 4.0f, arrowY + 2.5f);
+    arrow.lineTo(arrowRight, arrowY - 2.5f);
+
+    g.setColour(GuiTokens::accentCyan);
+    g.strokePath(arrow, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+}
+
+juce::Font CustomLookAndFeel::getComboBoxFont(juce::ComboBox &box)
+{
+    juce::ignoreUnused(box);
+    return juce::Font(11.5f, juce::Font::bold);
 }
 
 void CustomLookAndFeel::drawCornerResizer(juce::Graphics &g, int w, int h, bool isMouseOver, bool isMouseDragging)

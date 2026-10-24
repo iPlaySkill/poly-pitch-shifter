@@ -32,6 +32,11 @@ public:
                           float sliderPos, float minSliderPos, float maxSliderPos,
                           const juce::Slider::SliderStyle style, juce::Slider &slider) override;
 
+    // ComboBox & Popup Menu Rendering
+    void drawComboBox(juce::Graphics &g, int width, int height, bool isButtonDown,
+                      int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox &box) override;
+    juce::Font getComboBoxFont(juce::ComboBox &box) override;
+
     // Resizer handle
     void drawCornerResizer(juce::Graphics &g, int w, int h, bool isMouseOver, bool isMouseDragging) override;
 

@@ -25,6 +25,7 @@ CorrelationResult CrossCorrelationFinder::findBestOffset(const float *reference,
     if (refEnergy < 1e-12f)
         return result; // Silence, return zero offset
 
+    float bestScore = -std::numeric_limits<float>::infinity();
     float bestNccf = -std::numeric_limits<float>::infinity();
     int bestOffset = 0;
     size_t bestIdx = static_cast<size_t>(maxSearchOffset);
@@ -41,8 +42,13 @@ CorrelationResult CrossCorrelationFinder::findBestOffset(const float *reference,
 
         correlationValues[idx] = nccf;
 
-        if (nccf > bestNccf)
+        // Polyphonic chord stabilization: mild lag penalty prevents phase flutter between competing chord harmonics
+        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        const float score = nccf - lagPenalty;
+
+        if (score > bestScore)
         {
+            bestScore = score;
             bestNccf = nccf;
             bestOffset = delta;
             bestIdx = idx;
@@ -96,6 +102,7 @@ CorrelationResult CrossCorrelationFinder::findBestStereoOffset(const float *cons
     if (totalRefEnergy < 1e-12f)
         return result;
 
+    float bestScore = -std::numeric_limits<float>::infinity();
     float bestNccf = -std::numeric_limits<float>::infinity();
     int bestOffset = 0;
     size_t bestIdx = static_cast<size_t>(maxSearchOffset);
@@ -120,8 +127,13 @@ CorrelationResult CrossCorrelationFinder::findBestStereoOffset(const float *cons
         const float nccf = totalCross / denominator;
         correlationValues[idx] = nccf;
 
-        if (nccf > bestNccf)
+        // Polyphonic stereo chord stabilization: mild lag penalty prevents phase flutter
+        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        const float score = nccf - lagPenalty;
+
+        if (score > bestScore)
         {
+            bestScore = score;
             bestNccf = nccf;
             bestOffset = delta;
             bestIdx = idx;
