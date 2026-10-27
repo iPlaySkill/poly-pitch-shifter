@@ -290,8 +290,22 @@ void PolyPitchShifterAudioProcessorEditor::presetSelected()
     int id = presetComboBox.getSelectedId();
     if (id == 101) // Save
     {
-        juce::AlertWindow::showOkCancelBox(juce::AlertWindow::InfoIcon, "Save Preset", "Enter name:", 
-            [this](int res) { if (res) { /* implementation of input */ } });
+        auto *window = new juce::AlertWindow("Save Preset", "Enter preset name:", juce::AlertWindow::QuestionIcon);
+        window->addTextEditor("name", "", "Name");
+        window->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+        window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
+        {
+            if (result == 1)
+            {
+                auto name = window->getTextEditor("name")->getText();
+                if (name.isNotEmpty())
+                    savePreset(name);
+            }
+            window->exitModalState(0);
+            delete window;
+        }));
     }
     else if (id >= 300) // Load user preset
     {
