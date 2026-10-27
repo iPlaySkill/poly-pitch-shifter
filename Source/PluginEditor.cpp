@@ -30,27 +30,9 @@ PolyPitchShifterAudioProcessorEditor::PolyPitchShifterAudioProcessorEditor(PolyP
     mixKnob.getSlider().setName("Mix");
     gainKnob.getSlider().setName("Gain");
 
-    // Setup Preset ComboBox
-    presetComboBox.setTextWhenNothingSelected("Default (Zero Shift)");
-    presetComboBox.addItem("--- Factory Presets ---", 100);
-    presetComboBox.setItemEnabled(100, false);
-    presetComboBox.addItem("Default (Zero Shift)", 1);
-    presetComboBox.addItem("Standart D (-2 st)", 2);
-    presetComboBox.addItem("Standart C# (-3 st)", 3);
-    presetComboBox.addItem("Standart C (-4 st)", 4);
-    presetComboBox.addItem("Standart B (-5 st)", 5);
-    presetComboBox.addItem("Standart A (-7 st)", 6);
-    presetComboBox.addItem("Octave Down (-12 st)", 7);
-    presetComboBox.addItem("Octave Up (+12 st)", 8);
-    presetComboBox.addItem("Octaver (Low Octave)", 11);
-    presetComboBox.addItem("Octaver (High Octave)", 12);
-    presetComboBox.addItem("Virtual Capo (+1 st)", 9);
-    presetComboBox.addItem("Virtual Capo (+2 st)", 10);
-    presetComboBox.addItem("--- User Presets ---", 200);
-    presetComboBox.setItemEnabled(200, false);
-    presetComboBox.addItem("Save Preset...", 101);
-    presetComboBox.addItem("Load Preset...", 102);
+    setupPresetMenu();
     presetComboBox.setSelectedId(1, juce::dontSendNotification);
+    presetComboBox.onChange = [this] { presetSelected(); };
 
     // Bind parameters via attachments
     auto &apvts = audioProcessor.getAPVTS();
