@@ -59,5 +59,13 @@ private:
     std::vector<float> wetReadBuffer;
     int lastReportedLatency{-1};
 
+    // Preset handling (logic lives in PresetManager, these are UI glue only)
+    int lastSelectedPresetId{1};
+    void setupPresetMenu();
+    void presetSelected();
+    void showSavePresetDialog();
+    void saveUserPreset(const juce::String &name);
+    void selectPresetByName(const juce::String &name);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolyPitchShifterAudioProcessorEditor)
 };

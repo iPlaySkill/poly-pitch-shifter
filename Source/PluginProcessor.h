@@ -69,14 +69,6 @@ public:
     {
         return inputGainParam ? inputGainParam->load() : 0.0f;
     }
-    bool isTransientBypassEnabled() const noexcept
-    {
-        return transientBypassParam == nullptr || transientBypassParam->load() > 0.5f;
-    }
-    float getTransientSensitivity() const noexcept
-    {
-        return transientSensitivityParam ? transientSensitivityParam->load() : 1.8f;
-    }
 
     double getCurrentSampleRate() const noexcept
     {
@@ -109,8 +101,6 @@ private:
     std::atomic<float> *mixParam = nullptr;
     std::atomic<float> *gainParam = nullptr;
     std::atomic<float> *inputGainParam = nullptr;
-    std::atomic<float> *transientBypassParam = nullptr;
-    std::atomic<float> *transientSensitivityParam = nullptr;
 
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;

@@ -26,7 +26,7 @@ int main()
     const int latency = wsola.getLatencyInSamples();
     router.prepare(sampleRate, numChannels, static_cast<size_t>(latency + 2048));
     router.setAlignmentDelay(latency);
-    router.setEnabled(true);
+    router.setEnabled(false); // Transient bypass is disabled in the plugin; router only provides the dry delay line
 
     std::vector<float> inL(blockSize, 0.0f);
     std::vector<float> inR(blockSize, 0.0f);
@@ -42,8 +42,9 @@ int main()
     // Warm up DSP state and cache
     for (int b = 0; b < 20; ++b)
     {
+        router.feedDryAudio(inPtrs, numChannels, blockSize);
+        router.extractDelayedDry(outPtrs, numChannels, blockSize);
         wsola.process(inPtrs, wetPtrs, numChannels, blockSize);
-        router.process(inPtrs, wetPtrs, outPtrs, numChannels, blockSize);
     }
 
     // Benchmark measurement
@@ -58,9 +59,15 @@ int main()
             inR[i] = inL[i];
         }
 
+        // Same order as PolyPitchShifterAudioProcessor::processBlock: dry delay line, WSOLA, 50% dry/wet mix
         router.feedDryAudio(inPtrs, numChannels, blockSize);
+        router.extractDelayedDry(outPtrs, numChannels, blockSize);
         wsola.process(inPtrs, wetPtrs, numChannels, blockSize);
-        router.blendOutput(wetPtrs, outPtrs, numChannels, blockSize);
+        for (size_t i = 0; i < blockSize; ++i)
+        {
+            outL[i] = 0.5f * outL[i] + 0.5f * wetL[i];
+            outR[i] = 0.5f * outR[i] + 0.5f * wetR[i];
+        }
     }
 
     const auto endTime = std::chrono::high_resolution_clock::now();

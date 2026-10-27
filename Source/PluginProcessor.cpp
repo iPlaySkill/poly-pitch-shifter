@@ -13,8 +13,6 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     fineParam = apvts.getRawParameterValue(pps::params::pidFine);
     mixParam = apvts.getRawParameterValue(pps::params::pidMix);
     gainParam = apvts.getRawParameterValue(pps::params::pidGain);
-    transientBypassParam = apvts.getRawParameterValue(pps::params::pidTransientBypass);
-    transientSensitivityParam = apvts.getRawParameterValue(pps::params::pidTransientSensitivity);
 
     apvts.addParameterListener(pps::params::pidInputGain, this);
     apvts.addParameterListener(pps::params::pidBypass, this);
@@ -22,8 +20,6 @@ PolyPitchShifterAudioProcessor::PolyPitchShifterAudioProcessor()
     apvts.addParameterListener(pps::params::pidFine, this);
     apvts.addParameterListener(pps::params::pidMix, this);
     apvts.addParameterListener(pps::params::pidGain, this);
-    apvts.addParameterListener(pps::params::pidTransientBypass, this);
-    apvts.addParameterListener(pps::params::pidTransientSensitivity, this);
 }
 
 PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
@@ -34,26 +30,12 @@ PolyPitchShifterAudioProcessor::~PolyPitchShifterAudioProcessor()
     apvts.removeParameterListener(pps::params::pidFine, this);
     apvts.removeParameterListener(pps::params::pidMix, this);
     apvts.removeParameterListener(pps::params::pidGain, this);
-    apvts.removeParameterListener(pps::params::pidTransientBypass, this);
-    apvts.removeParameterListener(pps::params::pidTransientSensitivity, this);
 }
 
 void PolyPitchShifterAudioProcessor::parameterChanged(const juce::String &parameterID, float newValue)
 {
-    juce::ignoreUnused(newValue);
-
-    if (parameterID == pps::params::pidShift || parameterID == pps::params::pidFine)
-    {
-        wsolaEngine.setPitchShift(getShiftSemitones(), getFineCents());
-    }
-    else if (parameterID == pps::params::pidTransientBypass)
-    {
-        transientRouter.setEnabled(newValue > 0.5f);
-    }
-    else if (parameterID == pps::params::pidTransientSensitivity)
-    {
-        transientRouter.setSensitivity(newValue);
-    }
+    juce::ignoreUnused(parameterID, newValue);
+    wsolaEngine.setPitchShift(getShiftSemitones(), getFineCents());
 }
 
 const juce::String PolyPitchShifterAudioProcessor::getName() const
@@ -316,12 +298,18 @@ juce::AudioProcessorEditor *PolyPitchShifterAudioProcessor::createEditor()
 
 void PolyPitchShifterAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 {
-    juce::ignoreUnused(destData);
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void PolyPitchShifterAudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    juce::ignoreUnused(data, sizeInBytes);
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState != nullptr)
+        if (xmlState->hasTagName(apvts.state.getType()))
+            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter()

@@ -5,6 +5,9 @@
 
 ## [RU] Русскоязычная спецификация модуля транзиентной обработки
 
+> [!IMPORTANT]
+> **Примечание**: усиление и сохранение транзиентов через `Transient Bypass` и `Transient Sensitivity` **больше не выполняется**. Оба параметра удалены из параметров автоматизации (APVTS), а обход транзиентов программно отключён (`transientRouter.setEnabled(false)`), так как тесты показали его нецелесообразность. Детектор `TransientDetector` в `processBlock` не вызывается; `TransientBypassRouter` используется только как линия задержки сухого сигнала на латентность WSOLA (1024 сэмпла при 44.1/48 кГц). Описанные ниже алгоритмы и формулы сохранены как справочный материал по проведённому исследованию и покрыты собственными модульными тестами.
+
 ### 1. Высокочастотный дифференцирующий предкорректирующий фильтр (Pre-Emphasis)
 В полифоническом сигнале электрогитары атака медиатора по струнам характеризуется экстремально малым временем нарастания ($\le 1.0$ мс) и высокой концентрацией спектральной энергии в области верхних частот по сравнению со стационарным квазипериодическим гармоническим сустейном колебаний струн. Для надежной селекции атак от низкочастотных основных тонов применяется дискретный дифференцирующий фильтр высоких частот:
 
@@ -74,6 +77,9 @@ $$g_{\text{transient}}^2 + g_{\text{wet}}^2 = \sin^2\left(\frac{\pi}{2}\text{mas
 ---
 
 ## [ENG] English Transient Processing Specification
+
+> [!IMPORTANT]
+> **Note**: transient boosting / attack preservation via `Transient Bypass` and `Transient Sensitivity` **no longer happens**. Both parameters were removed from the automation tree (APVTS) and the attack bypass is disabled in code (`transientRouter.setEnabled(false)`), because testing showed it to be impractical. `TransientDetector` is not called from `processBlock`; `TransientBypassRouter` is used only as a dry-signal delay line matching the WSOLA latency (1024 samples at 44.1/48 kHz). The algorithms and formulas below are kept as reference material for the research performed and remain covered by their own unit tests.
 
 ### 1. High-Frequency Differentiating Pre-Emphasis Filter
 In polyphonic electric guitar audio, string pick strikes exhibit extremely rapid transient risetimes ($\le 1.0$ ms) and concentrated high-frequency spectral content compared to the continuous harmonic sustain of resonating strings. To isolate pick strikes from low-frequency fundamental oscillations, an aggressive discrete-time differentiating pre-emphasis filter is applied:

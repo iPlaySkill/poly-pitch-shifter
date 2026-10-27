@@ -41,7 +41,7 @@
   - Спроектирован маршрутизатор байпаса транзиентов (`TransientBypassRouter`) на циклическом буфере задержки с сэмпловым фазовым выравниванием под алгоритмическую задержку WSOLA и изоэнергетическим косинусным кроссфейдом ($\sin^2 + \cos^2 \equiv 1.0$).
   - Разработан каскадный 4-полюсный (24 дБ/октава) фильтр Баттерворта Direct Form II Transposed (`AntiAliasingFilter`) с динамическим отслеживанием коэффициента сдвига тона $\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$ для полного подавления алиасинга при повышении высоты тона.
   - Интегрирована прецизионная сэмпловая компенсация задержки плагина (PDC, Plug-in Delay Compensation) с передачей точного значения хосту DAW через `setLatencySamples()`.
-  - В параметрическое дерево APVTS добавлены новые элементы управления: `Transient Bypass` (включение/отключение обхода атак) и `Transient Sensitivity` (чувствительность детекции $0.1\times - 5.0\times$).
+  - В параметрическое дерево APVTS были добавлены элементы `Transient Bypass` и `Transient Sensitivity`. **Впоследствии удалены** (этап 5): усиление транзиентов через них больше не происходит, так как тесты показали нецелесообразность механизма; `TransientBypassRouter` остался только как линия задержки сухого сигнала.
   - Создан исчерпывающий комплекс верификационных и нагрузочных тестов: `TransientDetectorTest`, `TransientBypassRouterTest`, `AntiAliasingFilterTest`, `ParametersTest`, `LatencyReportingTest`, `TransientEndToEndTest`, `DspStressTest`, `PolyphonicGuitarChordTest`, `DspBenchmarkTest`.
   - Достигнута скорость обработки в 449x быстрее реального времени при загрузке одного ядра процессора всего 0.22%.
   - Оформлена математическая спецификация алгоритмов (`docs/TRANSIENT_PROCESSING.md`) и экспериментальные замеры производительности (`docs/BENCHMARK_RESULTS.md`).
@@ -66,9 +66,16 @@
 
 ---
 
-### Этап 5: Валидация по стандарту VST3, бенчмаркинг и пресеты (В плане)
+### Этап 5: Валидация по стандарту VST3, бенчмаркинг и пресеты (В процессе)
 - **Целевая ветка:** `feature/validation-benchmarking-presets`
-- **Задачи:** Банк заводских гитарных пресетов (Drop строи, виртуальный каподастр, октавер), строгое тестирование на соответствие спецификации VST3 через Pluginval (Level 10 pass), замеры загрузки процессора и оформление экспериментальных данных.
+- **Задачи:**
+  - Банк заводских гитарных пресетов (Standart D…A, октавы, октавер Low/High, виртуальный каподастр) с явными значениями всех параметров (`PresetManager`).
+  - Пользовательские пресеты в `Documents/PolyPitchShifter/Presets`: уникальные имена (новый перезаписывает старый), выделенная строка сохранения, без кнопки загрузки.
+  - Шкала `LevelMeter` -60…0 дБ с крупными подписями, выровненными по делениям.
+  - Актуализация документации (удалены транзиентные параметры, исправлена латентность 1024/2048 сэмплов, добавлен Input Gain).
+  - Тестовый раннер `Tests/run_all_tests.bat` больше не скрывает ошибки компиляции (удаление старых .exe и логи `build/*.compile.log`).
+  - Валидация VST3 (Pluginval Level 10) — в плане.
+  - Замеры загрузки процессора — актуализированы в `docs/BENCHMARK_RESULTS.md`.
 
 ---
 
@@ -111,7 +118,7 @@
   - Latency-aligned transient bypass router (`TransientBypassRouter`) on circular delay line with equal-power cosine crossfading ($\sin^2 + \cos^2 \equiv 1.0$) for transparent attack preservation.
   - Cascaded 4th-order (24 dB/octave) Butterworth anti-aliasing lowpass filter (`AntiAliasingFilter`) in Direct Form II Transposed with dynamic Nyquist guard band tracking $\omega_c = \frac{F_s / 2}{\alpha} \cdot 0.92$ when pitching up ($\alpha > 1.0$).
   - Sample-accurate Plug-in Delay Compensation (PDC) reporting to the host DAW via `setLatencySamples()`.
-  - Added APVTS parameters: `Transient Bypass` (bool) and `Transient Sensitivity` (float, $0.1\times - 5.0\times$).
+  - Added APVTS parameters `Transient Bypass` (bool) and `Transient Sensitivity` (float, $0.1\times - 5.0\times$). **Removed later** (stage 5): transient boosting through them no longer happens because testing showed the mechanism to be impractical; `TransientBypassRouter` remains only as a dry-signal delay line.
   - Comprehensive unit, stress, and benchmark test suites: `TransientDetectorTest`, `TransientBypassRouterTest`, `AntiAliasingFilterTest`, `ParametersTest`, `LatencyReportingTest`, `TransientEndToEndTest`, `DspStressTest`, `PolyphonicGuitarChordTest`, `DspBenchmarkTest`.
   - Real-time processing speedup of 449x faster than real-time with single-core CPU load of only 0.22%.
   - Mathematical documentation (`docs/TRANSIENT_PROCESSING.md`) and experimental performance records (`docs/BENCHMARK_RESULTS.md`).
@@ -136,7 +143,14 @@
 
 ---
 
-### Stage 5: Validation, Benchmarking and Factory Presets (Planned)
+### Stage 5: Validation, Benchmarking and Factory Presets (In Progress)
 - **Target Branch:** `feature/validation-benchmarking-presets`
-- **Scope:** Factory preset bank (Drop tunings, virtual capo, octaver, 12-string simulation), Pluginval VST3 compliance validation, CPU benchmarking, final release packaging.
+- **Scope:**
+  - Factory preset bank (Standart D…A, octaves, octaver Low/High, virtual capo) with explicit values for every parameter (`PresetManager`).
+  - User presets in `Documents/PolyPitchShifter/Presets`: unique names (a new one overwrites the old one), highlighted save row, no load button.
+  - `LevelMeter` -60…0 dB scale with larger labels aligned to the ticks.
+  - Documentation refresh (transient parameters removed, latency corrected to 1024/2048 samples, Input Gain added).
+  - `Tests/run_all_tests.bat` no longer hides compile errors (stale .exe removal and `build/*.compile.log`).
+  - Pluginval VST3 validation (Level 10) — planned.
+  - CPU benchmarking — refreshed in `docs/BENCHMARK_RESULTS.md`.
 
