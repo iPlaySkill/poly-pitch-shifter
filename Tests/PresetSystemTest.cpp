@@ -1,0 +1,47 @@
+#include <iostream>
+#include <cassert>
+#include "../Source/PluginProcessor.h"
+#include <juce_audio_processors/juce_audio_processors.h>
+
+void testPresetSystem()
+{
+    std::cout << "[RUNNING] PresetSystemTest..." << std::endl;
+
+    // Create processor
+    PolyPitchShifterAudioProcessor processor;
+    auto& apvts = processor.getAPVTS();
+
+    // Modify parameters
+    apvts.getParameter("shift")->setValueNotifyingHost(0.5f); // 0.0 is default, setting to something else
+    apvts.getParameter("mix")->setValueNotifyingHost(0.25f);
+    apvts.getParameter("gain")->setValueNotifyingHost(0.75f);
+
+    float shiftBefore = apvts.getRawParameterValue("shift")->load();
+    float mixBefore = apvts.getRawParameterValue("mix")->load();
+    float gainBefore = apvts.getRawParameterValue("gain")->load();
+
+    // Save state
+    juce::MemoryBlock data;
+    processor.getStateInformation(data);
+
+    // Reset parameters
+    apvts.getParameter("shift")->setValueNotifyingHost(0.0f);
+    apvts.getParameter("mix")->setValueNotifyingHost(1.0f);
+    apvts.getParameter("gain")->setValueNotifyingHost(0.0f);
+
+    // Load state
+    processor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+
+    // Verify
+    assert(std::abs(apvts.getRawParameterValue("shift")->load() - shiftBefore) < 1e-4f);
+    assert(std::abs(apvts.getRawParameterValue("mix")->load() - mixBefore) < 1e-4f);
+    assert(std::abs(apvts.getRawParameterValue("gain")->load() - gainBefore) < 1e-4f);
+
+    std::cout << "[PASSED] PresetSystemTest succeeded." << std::endl;
+}
+
+int main()
+{
+    testPresetSystem();
+    return 0;
+}

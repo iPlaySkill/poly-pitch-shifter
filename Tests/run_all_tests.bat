@@ -53,8 +53,12 @@ echo [11/11] Testing PluginEditor and Visualizer UI Assembly...
 cl %CXX_FLAGS% /bigobj /DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 /I build\_deps\juce-src\modules Tests\PluginEditorTest.cpp Source\PluginProcessor.cpp Source\PluginEditor.cpp Source\Parameters.cpp Source\GUI\CustomLookAndFeel.cpp Source\GUI\RotaryKnob.cpp Source\GUI\PillToggle.cpp Source\GUI\ControlPanel.cpp Source\GUI\LevelMeter.cpp Source\GUI\WaveformVisualizer.cpp Source\GUI\SpectrumVisualizer.cpp Source\DSP\HermiteResampler.cpp Source\DSP\Windowing.cpp Source\DSP\CrossCorrelationFinder.cpp Source\DSP\AntiAliasingFilter.cpp Source\DSP\WsolaEngine.cpp Source\DSP\TransientDetector.cpp Source\DSP\TransientBypassRouter.cpp build\juce_audio_processors.obj build\juce_gui_basics.obj build\juce_graphics.obj build\juce_events.obj build\juce_core.obj build\juce_data_structures.obj build\juce_audio_basics.obj user32.lib gdi32.lib shell32.lib ole32.lib oleaut32.lib comdlg32.lib /Fe:build\PluginEditorTest.exe /Fo:build\ >nul 2>&1
 build\PluginEditorTest.exe || goto :error
 
+echo [12/12] Testing PresetSystem...
+cl %CXX_FLAGS% /DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 /I build\_deps\juce-src\modules Tests\PresetSystemTest.cpp Source\PluginProcessor.cpp Source\Parameters.cpp Source\DSP\WsolaEngine.cpp Source\DSP\HermiteResampler.cpp Source\DSP\Windowing.cpp Source\DSP\CrossCorrelationFinder.cpp Source\DSP\AntiAliasingFilter.cpp Source\DSP\TransientDetector.cpp Source\DSP\TransientBypassRouter.cpp Source\DSP\SmoothedGain.cpp build\juce_audio_processors.obj build\juce_gui_basics.obj build\juce_graphics.obj build\juce_events.obj build\juce_core.obj build\juce_data_structures.obj build\juce_audio_basics.obj user32.lib gdi32.lib shell32.lib ole32.lib oleaut32.lib comdlg32.lib /Fe:build\PresetSystemTest.exe /Fo:build\ >nul 2>&1
+build\PresetSystemTest.exe || goto :error
+
 echo =========================================================
-echo [SUCCESS] All 11 test suites PASSED with 100%% precision!
+echo [SUCCESS] All 12 test suites PASSED with 100%% precision!
 echo =========================================================
 exit /b 0
 
