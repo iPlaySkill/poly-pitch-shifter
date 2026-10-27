@@ -59,5 +59,10 @@ private:
     std::vector<float> wetReadBuffer;
     int lastReportedLatency{-1};
 
+    juce::File getPresetsFolder() const;
+    void savePreset(const juce::String &name);
+    void loadPreset(const juce::String &name);
+    void updatePresetList();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PolyPitchShifterAudioProcessorEditor)
 };
