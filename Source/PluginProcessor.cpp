@@ -298,12 +298,18 @@ juce::AudioProcessorEditor *PolyPitchShifterAudioProcessor::createEditor()
 
 void PolyPitchShifterAudioProcessor::getStateInformation(juce::MemoryBlock &destData)
 {
-    juce::ignoreUnused(destData);
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void PolyPitchShifterAudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    juce::ignoreUnused(data, sizeInBytes);
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState != nullptr)
+        if (xmlState->hasTagName(apvts.state.getType()))
+            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter()
