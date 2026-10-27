@@ -238,3 +238,85 @@ void PolyPitchShifterAudioProcessorEditor::resized()
     waveformVisualizer.setBounds(monitorContent.removeFromTop(halfMonitorHeight).reduced(2, 3));
     spectrumVisualizer.setBounds(monitorContent.reduced(2, 3));
 }
+
+juce::File PolyPitchShifterAudioProcessorEditor::getPresetsFolder() const
+{
+    juce::File docs = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
+    juce::File folder = docs.getChildFile("PolyPitchShifter").getChildFile("Presets");
+    if (!folder.exists())
+        folder.createDirectory();
+    return folder;
+}
+
+void PolyPitchShifterAudioProcessorEditor::updatePresetList()
+{
+    auto folder = getPresetsFolder();
+    auto files = folder.findChildFiles(juce::File::findFiles, false, "*.xml");
+    
+    int id = 300;
+    for (const auto &file : files)
+    {
+        presetComboBox.addItem(file.getFileNameWithoutExtension(), id++);
+    }
+}
+
+void PolyPitchShifterAudioProcessorEditor::setupPresetMenu()
+{
+    presetComboBox.clear();
+    presetComboBox.setTextWhenNothingSelected("Default (Zero Shift)");
+    presetComboBox.addItem("--- Factory Presets ---", 100);
+    presetComboBox.setItemEnabled(100, false);
+    presetComboBox.addItem("Default (Zero Shift)", 1);
+    presetComboBox.addItem("Standart D (-2 st)", 2);
+    presetComboBox.addItem("Standart C# (-3 st)", 3);
+    presetComboBox.addItem("Standart C (-4 st)", 4);
+    presetComboBox.addItem("Standart B (-5 st)", 5);
+    presetComboBox.addItem("Standart A (-7 st)", 6);
+    presetComboBox.addItem("Octave Down (-12 st)", 7);
+    presetComboBox.addItem("Octave Up (+12 st)", 8);
+    presetComboBox.addItem("Octaver (Low Octave)", 11);
+    presetComboBox.addItem("Octaver (High Octave)", 12);
+    presetComboBox.addItem("Virtual Capo (+1 st)", 9);
+    presetComboBox.addItem("Virtual Capo (+2 st)", 10);
+    presetComboBox.addItem("--- User Presets ---", 200);
+    presetComboBox.setItemEnabled(200, false);
+    updatePresetList();
+    presetComboBox.addItem("Save Preset...", 101);
+    presetComboBox.addItem("Load Preset...", 102);
+}
+
+void PolyPitchShifterAudioProcessorEditor::presetSelected()
+{
+    int id = presetComboBox.getSelectedId();
+    if (id == 101) // Save
+    {
+        juce::AlertWindow::showOkCancelBox(juce::AlertWindow::InfoIcon, "Save Preset", "Enter name:", 
+            [this](int res) { if (res) { /* implementation of input */ } });
+    }
+    else if (id >= 300) // Load user preset
+    {
+        loadPreset(presetComboBox.getText());
+    }
+}
+
+void PolyPitchShifterAudioProcessorEditor::savePreset(const juce::String &name)
+{
+    auto folder = getPresetsFolder();
+    auto file = folder.getChildFile(name + ".xml");
+    juce::MemoryBlock data;
+    audioProcessor.getStateInformation(data);
+    file.replaceWithData(data.getData(), data.getSize());
+    updatePresetList();
+}
+
+void PolyPitchShifterAudioProcessorEditor::loadPreset(const juce::String &name)
+{
+    auto folder = getPresetsFolder();
+    auto file = folder.getChildFile(name + ".xml");
+    if (file.exists())
+    {
+        juce::MemoryBlock data;
+        file.loadFileAsData(data);
+        audioProcessor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+    }
+}
