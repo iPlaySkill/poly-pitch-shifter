@@ -11,8 +11,6 @@ inline constexpr const char *pidFine = "fine";
 inline constexpr const char *pidMix = "mix";
 inline constexpr const char *pidGain = "gain";
 inline constexpr const char *pidInputGain = "input_gain";
-inline constexpr const char *pidTransientBypass = "transient_bypass";
-inline constexpr const char *pidTransientSensitivity = "transient_sensitivity";
 
 // Parameter ranges
 inline constexpr float inputGainMin = -24.0f;
@@ -33,10 +31,6 @@ inline constexpr float mixDefault = 100.0f;
 inline constexpr float gainMin = -24.0f;
 inline constexpr float gainMax = +12.0f;
 inline constexpr float gainDefault = 0.0f;
-
-inline constexpr float transientSensitivityMin = 0.1f;
-inline constexpr float transientSensitivityMax = 5.0f;
-inline constexpr float transientSensitivityDefault = 1.8f;
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

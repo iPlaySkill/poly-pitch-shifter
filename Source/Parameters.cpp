@@ -40,16 +40,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
         std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{pidGain, 1}, "Gain", gainRange, gainDefault,
                                                     juce::AudioParameterFloatAttributes().withLabel("dB")));
 
-    // Transient Bypass [Enabled by default for attack clarity]
-    params.push_back(
-        std::make_unique<juce::AudioParameterBool>(juce::ParameterID{pidTransientBypass, 1}, "Transient Bypass", true));
-
-    // Transient Sensitivity [0.1x to 5.0x, default 1.8x]
-    auto sensitivityRange = juce::NormalisableRange<float>(transientSensitivityMin, transientSensitivityMax, 0.05f);
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        juce::ParameterID{pidTransientSensitivity, 1}, "Transient Sensitivity", sensitivityRange,
-        transientSensitivityDefault, juce::AudioParameterFloatAttributes().withLabel("x")));
-
     return {params.begin(), params.end()};
 }
 
