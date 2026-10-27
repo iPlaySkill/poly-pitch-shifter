@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "PresetManager.h"
 #include <iomanip>
 #include <sstream>
 
@@ -239,98 +240,110 @@ void PolyPitchShifterAudioProcessorEditor::resized()
     spectrumVisualizer.setBounds(monitorContent.reduced(2, 3));
 }
 
-juce::File PolyPitchShifterAudioProcessorEditor::getPresetsFolder() const
-{
-    juce::File docs = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
-    juce::File folder = docs.getChildFile("PolyPitchShifter").getChildFile("Presets");
-    if (!folder.exists())
-        folder.createDirectory();
-    return folder;
-}
-
-void PolyPitchShifterAudioProcessorEditor::updatePresetList()
-{
-    auto folder = getPresetsFolder();
-    auto files = folder.findChildFiles(juce::File::findFiles, false, "*.xml");
-    
-    int id = 300;
-    for (const auto &file : files)
-    {
-        presetComboBox.addItem(file.getFileNameWithoutExtension(), id++);
-    }
-}
 
 void PolyPitchShifterAudioProcessorEditor::setupPresetMenu()
 {
-    presetComboBox.clear();
+    using namespace pps::presets;
+
+    presetComboBox.clear(juce::dontSendNotification);
     presetComboBox.setTextWhenNothingSelected("Default (Zero Shift)");
+
     presetComboBox.addItem("--- Factory Presets ---", 100);
     presetComboBox.setItemEnabled(100, false);
-    presetComboBox.addItem("Default (Zero Shift)", 1);
-    presetComboBox.addItem("Standart D (-2 st)", 2);
-    presetComboBox.addItem("Standart C# (-3 st)", 3);
-    presetComboBox.addItem("Standart C (-4 st)", 4);
-    presetComboBox.addItem("Standart B (-5 st)", 5);
-    presetComboBox.addItem("Standart A (-7 st)", 6);
-    presetComboBox.addItem("Octave Down (-12 st)", 7);
-    presetComboBox.addItem("Octave Up (+12 st)", 8);
-    presetComboBox.addItem("Octaver (Low Octave)", 11);
-    presetComboBox.addItem("Octaver (High Octave)", 12);
-    presetComboBox.addItem("Virtual Capo (+1 st)", 9);
-    presetComboBox.addItem("Virtual Capo (+2 st)", 10);
+    for (const auto &preset : getFactoryPresets())
+        presetComboBox.addItem(preset.name, preset.menuId);
+
     presetComboBox.addItem("--- User Presets ---", 200);
     presetComboBox.setItemEnabled(200, false);
-    updatePresetList();
-    presetComboBox.addItem("Save Preset...", 101);
-    presetComboBox.addItem("Load Preset...", 102);
+
+    int id = 300;
+    for (const auto &name : listUserPresets(getDefaultUserPresetsFolder()))
+        presetComboBox.addItem(name, id++);
+
+    // The "Save" action is visually separated and highlighted so it cannot be mistaken for a preset name.
+    presetComboBox.addSeparator();
+    if (auto *menu = presetComboBox.getRootMenu())
+        menu->addColouredItem(101, "+  SAVE CURRENT AS PRESET...", pps::gui::GuiTokens::accentCyan, true, false);
+}
+
+void PolyPitchShifterAudioProcessorEditor::selectPresetByName(const juce::String &name)
+{
+    for (int i = 0; i < presetComboBox.getNumItems(); ++i)
+    {
+        const int itemId = presetComboBox.getItemId(i);
+        if (itemId >= 300 && presetComboBox.getItemText(i).equalsIgnoreCase(name))
+        {
+            presetComboBox.setSelectedId(itemId, juce::dontSendNotification);
+            lastSelectedPresetId = itemId;
+            return;
+        }
+    }
 }
 
 void PolyPitchShifterAudioProcessorEditor::presetSelected()
 {
-    int id = presetComboBox.getSelectedId();
-    if (id == 101) // Save
+    using namespace pps::presets;
+
+    const int id = presetComboBox.getSelectedId();
+
+    if (id == 101) // Save action: keep showing the previously active preset while the dialog is open
     {
-        auto *window = new juce::AlertWindow("Save Preset", "Enter preset name:", juce::AlertWindow::QuestionIcon);
-        window->addTextEditor("name", "", "Name");
-        window->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
-        window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
-
-        window->enterModalState(true, juce::ModalCallbackFunction::create([this, window](int result)
-        {
-            if (result == 1)
-            {
-                auto name = window->getTextEditor("name")->getText();
-                if (name.isNotEmpty())
-                    savePreset(name);
-            }
-            window->exitModalState(0);
-            delete window;
-        }));
+        presetComboBox.setSelectedId(lastSelectedPresetId, juce::dontSendNotification);
+        showSavePresetDialog();
+        return;
     }
-    else if (id >= 300) // Load user preset
+
+    if (const auto *factory = findFactoryPreset(id))
     {
-        loadPreset(presetComboBox.getText());
+        applyFactoryPreset(audioProcessor.getAPVTS(), *factory);
+        lastSelectedPresetId = id;
     }
-}
-
-void PolyPitchShifterAudioProcessorEditor::savePreset(const juce::String &name)
-{
-    auto folder = getPresetsFolder();
-    auto file = folder.getChildFile(name + ".xml");
-    juce::MemoryBlock data;
-    audioProcessor.getStateInformation(data);
-    file.replaceWithData(data.getData(), data.getSize());
-    updatePresetList();
-}
-
-void PolyPitchShifterAudioProcessorEditor::loadPreset(const juce::String &name)
-{
-    auto folder = getPresetsFolder();
-    auto file = folder.getChildFile(name + ".xml");
-    if (file.exists())
+    else if (id >= 300) // User preset
     {
         juce::MemoryBlock data;
-        file.loadFileAsData(data);
-        audioProcessor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+        if (loadUserPreset(getDefaultUserPresetsFolder(), presetComboBox.getText(), data))
+        {
+            audioProcessor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
+            lastSelectedPresetId = id;
+        }
     }
+}
+
+void PolyPitchShifterAudioProcessorEditor::showSavePresetDialog()
+{
+    auto *window = new juce::AlertWindow("Save Preset",
+                                         "Enter preset name (an existing preset with the same name will be replaced):",
+                                         juce::AlertWindow::QuestionIcon);
+
+    const juce::String initialName = (lastSelectedPresetId >= 300) ? presetComboBox.getText() : juce::String();
+    window->addTextEditor("name", initialName, "Name");
+    window->addButton("Save", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    window->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+    juce::Component::SafePointer<PolyPitchShifterAudioProcessorEditor> safeThis(this);
+    window->enterModalState(
+        true,
+        juce::ModalCallbackFunction::create([safeThis, window](int result) {
+            if (result == 1 && safeThis != nullptr)
+            {
+                const auto name = window->getTextEditorContents("name");
+                if (name.trim().isNotEmpty())
+                    safeThis->saveUserPreset(name);
+            }
+        }),
+        true); // deleteWhenDismissed
+}
+
+void PolyPitchShifterAudioProcessorEditor::saveUserPreset(const juce::String &name)
+{
+    juce::MemoryBlock data;
+    audioProcessor.getStateInformation(data);
+
+    const auto storedName = pps::presets::saveUserPreset(pps::presets::getDefaultUserPresetsFolder(), name, data);
+    if (storedName.isEmpty())
+        return;
+
+    // Rebuild the menu so the list reflects the (possibly overwritten) file without duplicates.
+    setupPresetMenu();
+    selectPresetByName(storedName);
 }
