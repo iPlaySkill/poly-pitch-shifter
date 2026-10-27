@@ -94,6 +94,8 @@ target_sources(PolyPitchShifter
         Source/PluginEditor.cpp
         Source/Parameters.h
         Source/Parameters.cpp
+        Source/PresetManager.h
+        Source/PresetManager.cpp
         Source/GUI/GuiTokens.h
         Source/GUI/CustomLookAndFeel.h
         Source/GUI/CustomLookAndFeel.cpp
