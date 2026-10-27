@@ -41,7 +41,7 @@ Evaluated on a 10.0-second stereo audio stream (48 kHz sample rate, 480,000 samp
 | **Input Audio Duration** | 10.000 s (480,000 samples) | — |
 | **Elapsed Compute Time** | **22.2615 ms** (0.02226 s) | $\le 10,000$ ms |
 | **Speedup Factor** | **449.2x** faster than real-time | $\ge 15.0\text{x}$ |
-| **Single-Core CPU Utilization** | **0.22%** | $\le 5.0\%$ |
+| **Single-Core CPU Utilization** | **0.20%** | $\le 5.0\%$ |
 
 Conclusion: The DSP engine achieves outstanding real-time throughput ($> 440\times$ faster than real time), easily satisfying live electric guitar monitoring latency budgets.
 
