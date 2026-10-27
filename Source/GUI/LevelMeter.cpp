@@ -127,6 +127,7 @@ void LevelMeter::paint(juce::Graphics &g)
     // Top clip indicator area (6px)
     auto clipArea = bounds.removeFromTop(6.0f);
     bounds.removeFromTop(4.0f); // Spacing below clip LED
+    bounds.removeFromBottom(8.0f); // Reserve room so the -60 label is not clipped
 
     const float totalWidth = bounds.getWidth();
     const float meterHeight = bounds.getHeight();
@@ -211,6 +212,11 @@ void LevelMeter::paint(juce::Graphics &g)
     const float scaleStartX = barStartX + barsWidth + 3.0f;
     const float textWidth = std::max(16.0f, totalWidth - scaleStartX);
 
+    // Larger label font; each number is placed so that its top edge sits just
+    // below the corresponding tick (0 dB label right under the red 0 dB tick).
+    const juce::Font labelFont(11.5f, juce::Font::bold);
+    const float labelTopOffset = 1.0f - (labelFont.getAscent() * 0.28f); // compensate internal leading
+
     const float dbLevels[] = { 0.0f, -6.0f, -12.0f, -18.0f, -24.0f, -36.0f, -48.0f, -60.0f };
     for (float db : dbLevels)
     {
@@ -222,12 +228,12 @@ void LevelMeter::paint(juce::Graphics &g)
         g.drawHorizontalLine(static_cast<int>(y), scaleStartX, scaleStartX + 3.0f);
 
         // Number label
-        g.setFont(juce::Font(9.0f, juce::Font::plain));
+        g.setFont(labelFont);
         g.setColour(std::abs(db) < 0.1f ? GuiTokens::accentRed
                                         : (db >= -18.0f ? GuiTokens::textSecondary : GuiTokens::textMuted));
         const juce::String text = (std::abs(db) < 0.1f) ? "0" : juce::String(static_cast<int>(db));
-        g.drawText(text, scaleStartX + 4.0f, y - 6.0f, textWidth, 12.0f,
-                   juce::Justification::centredLeft, false);
+        g.drawText(text, juce::Rectangle<float>(scaleStartX + 3.0f, y + labelTopOffset, textWidth, labelFont.getHeight()),
+                   juce::Justification::topLeft, false);
     }
 }
 
