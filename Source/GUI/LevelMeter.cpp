@@ -222,11 +222,11 @@ void LevelMeter::paint(juce::Graphics &g)
         g.drawHorizontalLine(static_cast<int>(y), scaleStartX, scaleStartX + 3.0f);
 
         // Number label
-        g.setFont(juce::Font(7.5f, juce::Font::plain));
+        g.setFont(juce::Font(9.0f, juce::Font::plain));
         g.setColour(std::abs(db) < 0.1f ? GuiTokens::accentRed
                                         : (db >= -18.0f ? GuiTokens::textSecondary : GuiTokens::textMuted));
         const juce::String text = (std::abs(db) < 0.1f) ? "0" : juce::String(static_cast<int>(db));
-        g.drawText(text, scaleStartX + 4.0f, y - 5.0f, textWidth, 10.0f,
+        g.drawText(text, scaleStartX + 4.0f, y - 6.0f, textWidth, 12.0f,
                    juce::Justification::centredLeft, false);
     }
 }
