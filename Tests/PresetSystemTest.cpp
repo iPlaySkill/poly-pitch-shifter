@@ -12,30 +12,30 @@ void testPresetSystem()
     auto& apvts = processor.getAPVTS();
 
     // Modify parameters
-    apvts.getParameter("shift")->setValueNotifyingHost(0.5f); // 0.0 is default, setting to something else
-    apvts.getParameter("mix")->setValueNotifyingHost(0.25f);
-    apvts.getParameter("gain")->setValueNotifyingHost(0.75f);
+    apvts.getParameter(pps::params::pidShift)->setValueNotifyingHost(0.5f);
+    apvts.getParameter(pps::params::pidMix)->setValueNotifyingHost(0.25f);
+    apvts.getParameter(pps::params::pidGain)->setValueNotifyingHost(0.75f);
 
-    float shiftBefore = apvts.getRawParameterValue("shift")->load();
-    float mixBefore = apvts.getRawParameterValue("mix")->load();
-    float gainBefore = apvts.getRawParameterValue("gain")->load();
+    float shiftBefore = apvts.getRawParameterValue(pps::params::pidShift)->load();
+    float mixBefore = apvts.getRawParameterValue(pps::params::pidMix)->load();
+    float gainBefore = apvts.getRawParameterValue(pps::params::pidGain)->load();
 
     // Save state
     juce::MemoryBlock data;
     processor.getStateInformation(data);
 
     // Reset parameters
-    apvts.getParameter("shift")->setValueNotifyingHost(0.0f);
-    apvts.getParameter("mix")->setValueNotifyingHost(1.0f);
-    apvts.getParameter("gain")->setValueNotifyingHost(0.0f);
+    apvts.getParameter(pps::params::pidShift)->setValueNotifyingHost(0.0f);
+    apvts.getParameter(pps::params::pidMix)->setValueNotifyingHost(1.0f);
+    apvts.getParameter(pps::params::pidGain)->setValueNotifyingHost(0.0f);
 
     // Load state
     processor.setStateInformation(data.getData(), static_cast<int>(data.getSize()));
 
     // Verify
-    assert(std::abs(apvts.getRawParameterValue("shift")->load() - shiftBefore) < 1e-4f);
-    assert(std::abs(apvts.getRawParameterValue("mix")->load() - mixBefore) < 1e-4f);
-    assert(std::abs(apvts.getRawParameterValue("gain")->load() - gainBefore) < 1e-4f);
+    assert(std::abs(apvts.getRawParameterValue(pps::params::pidShift)->load() - shiftBefore) < 1e-4f);
+    assert(std::abs(apvts.getRawParameterValue(pps::params::pidMix)->load() - mixBefore) < 1e-4f);
+    assert(std::abs(apvts.getRawParameterValue(pps::params::pidGain)->load() - gainBefore) < 1e-4f);
 
     std::cout << "[PASSED] PresetSystemTest succeeded." << std::endl;
 }
