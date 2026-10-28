@@ -452,6 +452,21 @@ target_link_libraries(PresetSystemTests
 
 add_test(NAME PresetSystemTest COMMAND PresetSystemTests)
 
+add_executable(LowNoteStabilityTests
+    LowNoteStabilityTest.cpp
+    ../Source/DSP/HermiteResampler.cpp
+    ../Source/DSP/Windowing.cpp
+    ../Source/DSP/CrossCorrelationFinder.cpp
+    ../Source/DSP/AntiAliasingFilter.cpp
+    ../Source/DSP/WsolaEngine.cpp
+)
+
+target_include_directories(LowNoteStabilityTests PRIVATE ../Source)
+target_compile_features(LowNoteStabilityTests PRIVATE cxx_std_20)
+
+add_test(NAME LowNoteStabilityTest COMMAND LowNoteStabilityTests)
+
+
 
 
 
