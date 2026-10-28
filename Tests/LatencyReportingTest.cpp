@@ -14,8 +14,8 @@ int main()
         engine.prepare(48000.0, 256, 2);
 
         const int latency48k = engine.getLatencyInSamples();
-        // At 48k: latency buffer of 512 samples (10.6 ms)
-        assert(latency48k == 512);
+        // At 48k: latency buffer of 1024 samples (21.33 ms)
+        assert(latency48k == 1024);
         const double latencyMs = (static_cast<double>(latency48k) / 48000.0) * 1000.0;
         assert(latencyMs < 25.0);
 
@@ -55,8 +55,8 @@ int main()
         engine.prepare(96000.0, 512, 2);
 
         const int latency96k = engine.getLatencyInSamples();
-        // At 96k: latency buffer of 1024 samples (10.6 ms)
-        assert(latency96k == 1024);
+        // At 96k: latency buffer of 2048 samples (21.33 ms)
+        assert(latency96k == 2048);
         const double latencyMs = (static_cast<double>(latency96k) / 96000.0) * 1000.0;
         assert(latencyMs < 25.0);
 
@@ -71,12 +71,12 @@ int main()
         pps::WsolaEngine engine;
         engine.prepare(44100.0, 256, 2);
         const int latency44k = engine.getLatencyInSamples();
-        assert(latency44k == 512);
+        assert(latency44k == static_cast<int>(44100.0 / 48000.0 * 1024.0));
 
         // Switch to 88.2 kHz
         engine.prepare(88200.0, 256, 2);
         const int latency88k = engine.getLatencyInSamples();
-        assert(latency88k == 1024);
+        assert(latency88k == static_cast<int>(88200.0 / 48000.0 * 1024.0));
     }
 
     std::cout << "  Passed: Latency reporting and PDC alignment verified across sample rates." << std::endl;

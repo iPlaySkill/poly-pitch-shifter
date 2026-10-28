@@ -83,8 +83,8 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
-    // Algorithmic latency corresponding to lookback window
-    return 1024; 
+    // Algorithmic latency corresponding to lookback window (base 1024 samples at 48 kHz)
+    return static_cast<int>(currentSampleRate / 48000.0 * 1024.0);
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
