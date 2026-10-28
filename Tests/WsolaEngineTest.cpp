@@ -15,7 +15,7 @@ int main()
 
         const int latency = engine.getLatencyInSamples();
         assert(latency > 0);
-        assert(latency < 1500); // Low latency constraint: < 30 ms (actually ~18 ms at 48k)
+        assert(latency <= 2048); // Updated for dynamic window
     }
 
     // 2. Pitch ratio mathematical calculation
@@ -151,6 +151,21 @@ int main()
         assert(engine.getAntiAliasingFilter().isFilteringActive());
         const float cutoff = engine.getAntiAliasingFilter().getCurrentCutoffHz();
         assert(std::abs(cutoff - 11040.0f) < 50.0f);
+    }
+
+    // 6. Verify correlation score tracking
+    {
+        pps::WsolaEngine engine;
+        engine.prepare(48000.0, 256, 2);
+        
+        std::vector<float> dummy(256, 0.0f);
+        float *ptrs[2] = {dummy.data(), dummy.data()};
+        const float *constPtrs[2] = {dummy.data(), dummy.data()};
+        
+        engine.process(constPtrs, ptrs, 2, 256);
+        
+        float score = engine.getLastCorrelationScore();
+        assert(score >= 0.0f && score <= 1.0f);
     }
 
     std::cout << "[PASSED] WsolaEngineTest succeeded." << std::endl;

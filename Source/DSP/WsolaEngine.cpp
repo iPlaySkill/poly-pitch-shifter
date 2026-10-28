@@ -44,22 +44,10 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Extended window and search sizes optimized for electric guitar down to Drop C (65.4 Hz)
-    // and Drop A (55.0 Hz): 1024 samples at 48 kHz (21.33 ms) covers down to ~46 Hz fundamentals
-    // Max search offset 512 samples gives 1024-sample search interval
-    // 2048 samples at 96 kHz
-    if (currentSampleRate >= 88200.0)
-    {
-        windowSize = 2048;
-        hopSize = 1024;
-        maxSearchOffset = 1024;
-    }
-    else
-    {
-        windowSize = 1024;
-        hopSize = 512;
-        maxSearchOffset = 512;
-    }
+    // Fix: 1024 samples at 48 kHz (21.33 ms) for better LF stability
+    windowSize = 1024;
+    hopSize = 512;
+    maxSearchOffset = 512;
 }
 
 void WsolaEngine::reset() noexcept
@@ -95,12 +83,8 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
-    // Algorithmic latency corresponding to lookback window
-    // (1024 samples at 44.1/48 kHz = 21.33 ms, 2048 samples at 88.2/96 kHz)
-    if (currentSampleRate >= 88200.0)
-        return 2048;
-
-    return 1024;
+    // Algorithmic latency corresponding to lookback window (base 1024 samples at 48 kHz)
+    return static_cast<int>(currentSampleRate / 48000.0 * 1024.0);
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -168,8 +152,9 @@ void WsolaEngine::processWsolaFrame() noexcept
         }
 
         const auto correlation =
-            correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
+            correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset, static_cast<int>(lastBestOffset));
         bestDelta = correlation.bestOffset;
+        lastCorrelationScore = correlation.peakCorrelation;
     }
 
     lastBestOffset = bestDelta;

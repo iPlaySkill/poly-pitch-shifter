@@ -43,7 +43,7 @@ CorrelationResult CrossCorrelationFinder::findBestOffset(const float *reference,
         correlationValues[idx] = nccf;
 
         // Polyphonic chord stabilization: mild lag penalty prevents phase flutter between competing chord harmonics
-        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        const float lagPenalty = 0.005f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
         const float score = nccf - lagPenalty;
 
         if (score > bestScore)
@@ -78,7 +78,7 @@ CorrelationResult CrossCorrelationFinder::findBestOffset(const float *reference,
 CorrelationResult CrossCorrelationFinder::findBestStereoOffset(const float *const *channelReferences,
                                                                const float *const *channelSearchBuffers,
                                                                size_t numChannels, size_t windowLength,
-                                                               int maxSearchOffset) noexcept
+                                                               int maxSearchOffset, int lastBestOffset) noexcept
 {
     CorrelationResult result;
     if (channelReferences == nullptr || channelSearchBuffers == nullptr || numChannels == 0 || windowLength == 0 ||
@@ -127,9 +127,14 @@ CorrelationResult CrossCorrelationFinder::findBestStereoOffset(const float *cons
         const float nccf = totalCross / denominator;
         correlationValues[idx] = nccf;
 
-        // Polyphonic stereo chord stabilization: mild lag penalty prevents phase flutter
-        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
-        const float score = nccf - lagPenalty;
+        // Polyphonic stereo chord stabilization
+        const float lagPenalty = 0.005f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        
+        // Temporal consistency boost
+        const float dist = static_cast<float>(std::abs(delta - lastBestOffset));
+        const float consistencyBoost = 0.05f * std::exp(-std::pow(dist, 2) / (2.0f * 10.0f));
+        
+        const float score = nccf - lagPenalty + consistencyBoost;
 
         if (score > bestScore)
         {

@@ -78,7 +78,10 @@ int main()
         const float *searches[2] = {searchL.data(), searchR.data()};
 
         pps::CrossCorrelationFinder finder;
-        const auto stereoResult = finder.findBestStereoOffset(refs, searches, 2, windowLength, maxSearch);
+        finder.prepare(windowLength, maxSearch);
+        
+        // Pass 0 as lastBestOffset for the test
+        const auto stereoResult = finder.findBestStereoOffset(refs, searches, 2, windowLength, maxSearch, 0);
 
         assert(stereoResult.bestOffset == trueStereoOffset);
         assert(stereoResult.peakCorrelation > 0.98f);
@@ -90,6 +93,7 @@ int main()
         std::vector<float> silentSearch(256, 0.0f);
 
         pps::CrossCorrelationFinder finder;
+        finder.prepare(128, 30);
         const auto res = finder.findBestOffset(silentRef.data(), silentSearch.data(), 128, 30);
         assert(!std::isnan(res.peakCorrelation));
         assert(!std::isnan(res.fractionalOffset));

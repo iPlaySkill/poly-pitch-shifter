@@ -44,6 +44,12 @@
 > **Важное замечание при работе с DAW (Reaper и др.):**
 > Если плагин в данный момент загружен в Reaper или другой рабочей станции, операционная система Windows блокирует бинарный файл `.vst3` от перезаписи. Перед повторной пересборкой проекта в Visual Studio удалите плагин с трека в DAW либо закройте проект в DAW, иначе компилятор выдаст ошибку `LNK1104: cannot open file ... PolyPitchShifter.vst3`.
 
+### [RU] Устранение ошибок сборки
+Если после изменения кодовой базы вы столкнулись с ошибками `Unresolved External Symbol` или ошибками компоновщика, возможно, кэш сборки CMake стал несогласованным.
+1. Закройте Visual Studio.
+2. Вручную удалите папку `build/` или `out/` в корне проекта.
+3. Заново откройте Visual Studio (это инициирует свежую конфигурацию CMake) и выполните сборку.
+
 ---
 
 ## [ENG] Building PolyPitchShifter VST3
@@ -87,3 +93,9 @@
 > [!TIP]
 > **Important Note for Testing with DAWs (Reaper, etc.):**
 > If the plugin is actively loaded in Reaper or another DAW, Windows locks the `.vst3` binary against file writes. Before rebuilding in Visual Studio, unload the plugin in the DAW or close the host project; otherwise MSVC linker will fail with `LNK1104: cannot open file ... PolyPitchShifter.vst3`.
+
+### Troubleshooting Build Errors
+If you encounter `Unresolved External Symbol` or linker errors after modifying the codebase, your CMake build cache may have become inconsistent.
+1. Close Visual Studio.
+2. Manually delete the `build/` or `out/` folder in your project root.
+3. Re-open Visual Studio (it will trigger a fresh CMake configuration) and rebuild.

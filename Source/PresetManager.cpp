@@ -1,7 +1,8 @@
 #include "PresetManager.h"
 #include "Parameters.h"
 
-namespace pps::presets {
+namespace pps {
+namespace presets {
 
 const std::vector<FactoryPreset> &getFactoryPresets()
 {
@@ -97,4 +98,5 @@ bool loadUserPreset(const juce::File &folder, const juce::String &name, juce::Me
     return file.existsAsFile() && file.loadFileAsData(stateOut);
 }
 
-} // namespace pps::presets
+} // namespace presets
+} // namespace pps

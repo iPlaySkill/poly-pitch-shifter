@@ -71,6 +71,11 @@ public:
         return currentPitchRatio;
     }
 
+    [[nodiscard]] float getLastCorrelationScore() const noexcept
+    {
+        return lastCorrelationScore;
+    }
+
     [[nodiscard]] const AntiAliasingFilter &getAntiAliasingFilter() const noexcept
     {
         return antiAliasingFilter;
@@ -137,6 +142,7 @@ private:
 
     // WSOLA tracking state
     int64_t lastBestOffset = 0;
+    float lastCorrelationScore = 0.0f;
     double nominalAnalysisPos = 0.0;
     bool isFirstFrame = true;
     bool transientClarityEnabled = true;
