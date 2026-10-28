@@ -84,8 +84,7 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
     // Algorithmic latency corresponding to lookback window
-    // Window size can dynamically change, so return max potential latency
-    return 2048; 
+    return 1024; 
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
