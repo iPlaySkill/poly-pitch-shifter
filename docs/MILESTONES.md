@@ -58,7 +58,7 @@
   - Разработаны карточки-контейнеры (`ControlPanel`) с цветовой дифференциацией секций плагина.
   - Разработан двухканальный Peak/RMS измеритель уровней (`LevelMeter`) с баллистикой мгновенной атаки, экспоненциального спада и индикацией перегрузки (> 0 dBFS).
   - Разработан двухлучевой осциллограф формы волны (`WaveformVisualizer`) в реальном времени с синхронизацией dry/wet сигналов.
-  - Разработан 1024-точечный БПФ-спектроанализатор (`SpectrumVisualizer`) с логарифмической шкалой частот (20 Гц – 20 кГц) и динамической линией среза антиалиасингового фильтра.
+  - Разработан 1024-точечный БПФ-спектроанализатор (`SpectrumVisualizer`) с логарифмической шкалой частот (20 Гц – 20 кГц) и динамической линией среза антиалиасинга.
   - Разработан потокобезопасный lock-free кольцевой FIFO-буфер телеметрии (`VisualizerBuffer`) без блокировок и выделения памяти в аудиопотоке (`processBlock`).
   - Собрано главное окно плагина (`PluginEditor`) с APVTS-привязками параметров, таймером отрисовки 60 FPS и плавной адаптивностью от 680x460 до 1200x800.
   - Создан полный комплект модульных тестов GUI: `CustomLookAndFeelTest`, `RotaryKnobTest`, `PillToggleTest`, `ControlPanelTest`, `LevelMeterTest`, `WaveformVisualizerTest`, `SpectrumVisualizerTest`, `VisualizerBufferTest`, `VisualizerIntegrationTest`, `PluginEditorTest`.
@@ -66,16 +66,16 @@
 
 ---
 
-### Этап 5: Валидация по стандарту VST3, бенчмаркинг и пресеты (В процессе)
+### Этап 5: Валидация по стандарту VST3, бенчмаркинг и пресеты (Завершен)
 - **Целевая ветка:** `feature/validation-benchmarking-presets`
 - **Задачи:**
-  - Банк заводских гитарных пресетов (Standart D…A, октавы, октавер Low/High, виртуальный каподастр) с явными значениями всех параметров (`PresetManager`).
-  - Пользовательские пресеты в `Documents/PolyPitchShifter/Presets`: уникальные имена (новый перезаписывает старый), выделенная строка сохранения, без кнопки загрузки.
-  - Шкала `LevelMeter` -60…0 дБ с крупными подписями, выровненными по делениям.
-  - Актуализация документации (удалены транзиентные параметры, исправлена латентность 1024/2048 сэмплов, добавлен Input Gain).
-  - Тестовый раннер `Tests/run_all_tests.bat` больше не скрывает ошибки компиляции (удаление старых .exe и логи `build/*.compile.log`).
-  - Валидация VST3 (Pluginval Level 10) — в плане.
-  - Замеры загрузки процессора — актуализированы в `docs/BENCHMARK_RESULTS.md`.
+  - Банк заводских гитарных пресетов (Standart D…A, октавы, октавер Low/High, виртуальный каподастр) с явными значениями всех параметров (`PresetManager`) — **Завершено**.
+  - Пользовательские пресеты в `Documents/PolyPitchShifter/Presets`: уникальные имена (новый перезаписывает старый), выделенная строка сохранения, без кнопки загрузки — **Завершено**.
+  - Шкала `LevelMeter` -60…0 дБ с крупными подписями, выровненными по делениям — **Завершено**.
+  - Актуализация документации (удалены транзиентные параметры, исправлена латентность 1024/2048 сэмплов, добавлен Input Gain) — **Завершено**.
+  - Тестовый раннер `Tests/run_all_tests.bat` больше не скрывает ошибки компиляции (удаление старых .exe и логи `build/*.compile.log`) — **Завершено**.
+  - Валидация VST3 (Pluginval Level 10) — **Завершено**.
+  - Замеры загрузки процессора — актуализированы в `docs/BENCHMARK_RESULTS.md` — **Завершено**.
 
 ---
 
@@ -143,14 +143,13 @@
 
 ---
 
-### Stage 5: Validation, Benchmarking and Factory Presets (In Progress)
+### Stage 5: Validation, Benchmarking and Factory Presets (Completed)
 - **Target Branch:** `feature/validation-benchmarking-presets`
 - **Scope:**
-  - Factory preset bank (Standart D…A, octaves, octaver Low/High, virtual capo) with explicit values for every parameter (`PresetManager`).
-  - User presets in `Documents/PolyPitchShifter/Presets`: unique names (a new one overwrites the old one), highlighted save row, no load button.
-  - `LevelMeter` -60…0 dB scale with larger labels aligned to the ticks.
-  - Documentation refresh (transient parameters removed, latency corrected to 1024/2048 samples, Input Gain added).
-  - `Tests/run_all_tests.bat` no longer hides compile errors (stale .exe removal and `build/*.compile.log`).
-  - Pluginval VST3 validation (Level 10) — planned.
-  - CPU benchmarking — refreshed in `docs/BENCHMARK_RESULTS.md`.
-
+  - Factory preset bank (`PresetManager`) — **Completed**.
+  - User presets in `Documents/PolyPitchShifter/Presets` — **Completed**.
+  - `LevelMeter` -60…0 dB scale labels — **Completed**.
+  - Documentation refresh — **Completed**.
+  - `Tests/run_all_tests.bat` compile error handling — **Completed**.
+  - Pluginval VST3 validation (Level 10) — **Completed**.
+  - CPU benchmarking — **Completed**.
