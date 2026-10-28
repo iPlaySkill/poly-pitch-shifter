@@ -44,19 +44,18 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Optimized for low-latency live performance:
-    // 512 samples at 48 kHz (10.66 ms)
+    // Optimized for low-latency live performance with better low-frequency tracking:
     if (currentSampleRate >= 88200.0)
     {
-        windowSize = 1024;
-        hopSize = 512;
-        maxSearchOffset = 512;
+        windowSize = 4096;
+        hopSize = 1024;
+        maxSearchOffset = 1024;
     }
     else
     {
-        windowSize = 512;
-        hopSize = 256;
-        maxSearchOffset = 256;
+        windowSize = 2048;
+        hopSize = 512;
+        maxSearchOffset = 512;
     }
 }
 
@@ -94,11 +93,10 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
     // Algorithmic latency corresponding to lookback window
-    // (512 samples at 44.1/48 kHz = 10.6 ms, 1024 samples at 88.2/96 kHz)
     if (currentSampleRate >= 88200.0)
-        return 1024;
+        return 2048;
 
-    return 512;
+    return 1024;
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -111,7 +109,7 @@ void WsolaEngine::processWsolaFrame() noexcept
                                       ? (synthesisWritePos - synthesisReadPos)
                                       : (synthCap - synthesisReadPos + synthesisWritePos);
 
-    // Target latency in samples (e.g. 512 at 48k)
+    // Target latency in samples (e.g. 1024 at 48k)
     const double targetLatency = static_cast<double>(getLatencyInSamples());
 
     // Because the resampler advances through synthesis audio at rate 'resampleRatio = currentPitchRatio',
