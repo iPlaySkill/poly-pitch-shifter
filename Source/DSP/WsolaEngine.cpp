@@ -44,9 +44,15 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Optimized for low-latency live performance:
-    // 512 samples at 48 kHz (10.66 ms)
-    if (currentSampleRate >= 88200.0)
+    // Адаптация размера окна под коэффициент транспонирования
+    // При понижении строя увеличиваем окно для лучшей фазовой когерентности низких частот
+    if (targetPitchRatio < 0.8) // Понижение более чем на 4 полутона
+    {
+        windowSize = 1024;
+        hopSize = 512;
+        maxSearchOffset = 512;
+    }
+    else if (currentSampleRate >= 88200.0)
     {
         windowSize = 1024;
         hopSize = 512;
@@ -94,10 +100,8 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
     // Algorithmic latency corresponding to lookback window
-    if (currentSampleRate >= 88200.0)
-        return 2048;
-
-    return 1024;
+    // Window size can dynamically change, so return max potential latency
+    return 2048; 
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
