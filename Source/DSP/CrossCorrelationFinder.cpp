@@ -43,7 +43,7 @@ CorrelationResult CrossCorrelationFinder::findBestOffset(const float *reference,
         correlationValues[idx] = nccf;
 
         // Polyphonic chord stabilization: mild lag penalty prevents phase flutter between competing chord harmonics
-        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        const float lagPenalty = 0.020f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
         const float score = nccf - lagPenalty;
 
         if (score > bestScore)
@@ -128,7 +128,7 @@ CorrelationResult CrossCorrelationFinder::findBestStereoOffset(const float *cons
         correlationValues[idx] = nccf;
 
         // Polyphonic stereo chord stabilization: mild lag penalty prevents phase flutter
-        const float lagPenalty = 0.015f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
+        const float lagPenalty = 0.020f * (static_cast<float>(std::abs(delta)) / static_cast<float>(maxSearchOffset));
         const float score = nccf - lagPenalty;
 
         if (score > bestScore)

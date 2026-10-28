@@ -44,21 +44,19 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Extended window and search sizes optimized for electric guitar down to Drop C (65.4 Hz)
-    // and Drop A (55.0 Hz): 1024 samples at 48 kHz (21.33 ms) covers down to ~46 Hz fundamentals
-    // Max search offset 512 samples gives 1024-sample search interval
-    // 2048 samples at 96 kHz
+    // Optimized for low-latency live performance:
+    // 512 samples at 48 kHz (10.66 ms)
     if (currentSampleRate >= 88200.0)
-    {
-        windowSize = 2048;
-        hopSize = 1024;
-        maxSearchOffset = 1024;
-    }
-    else
     {
         windowSize = 1024;
         hopSize = 512;
         maxSearchOffset = 512;
+    }
+    else
+    {
+        windowSize = 512;
+        hopSize = 256;
+        maxSearchOffset = 256;
     }
 }
 
@@ -96,11 +94,11 @@ void WsolaEngine::setPitchRatio(double ratio) noexcept
 int WsolaEngine::getLatencyInSamples() const noexcept
 {
     // Algorithmic latency corresponding to lookback window
-    // (1024 samples at 44.1/48 kHz = 21.33 ms, 2048 samples at 88.2/96 kHz)
+    // (512 samples at 44.1/48 kHz = 10.6 ms, 1024 samples at 88.2/96 kHz)
     if (currentSampleRate >= 88200.0)
-        return 2048;
+        return 1024;
 
-    return 1024;
+    return 512;
 }
 
 void WsolaEngine::processWsolaFrame() noexcept
@@ -113,7 +111,7 @@ void WsolaEngine::processWsolaFrame() noexcept
                                       ? (synthesisWritePos - synthesisReadPos)
                                       : (synthCap - synthesisReadPos + synthesisWritePos);
 
-    // Target latency in samples (e.g. 1024 at 48k)
+    // Target latency in samples (e.g. 512 at 48k)
     const double targetLatency = static_cast<double>(getLatencyInSamples());
 
     // Because the resampler advances through synthesis audio at rate 'resampleRatio = currentPitchRatio',
