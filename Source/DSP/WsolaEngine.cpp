@@ -167,6 +167,7 @@ void WsolaEngine::processWsolaFrame() noexcept
         const auto correlation =
             correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
         bestDelta = correlation.bestOffset;
+        lastCorrelationScore = correlation.peakCorrelation;
     }
 
     lastBestOffset = bestDelta;
