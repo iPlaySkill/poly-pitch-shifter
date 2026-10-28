@@ -3,7 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <vector>
 
-namespace pps::presets {
+namespace pps {
+namespace presets {
 
 /**
  * Factory preset definition. Every preset fully specifies the pitch/mix/gain
@@ -49,4 +50,5 @@ juce::String saveUserPreset(const juce::File &folder, const juce::String &name, 
 /** Loads the raw state data of a user preset. Returns false when it does not exist. */
 bool loadUserPreset(const juce::File &folder, const juce::String &name, juce::MemoryBlock &stateOut);
 
-} // namespace pps::presets
+} // namespace presets
+} // namespace pps
