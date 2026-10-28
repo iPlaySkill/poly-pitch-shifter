@@ -44,18 +44,19 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Optimized for low-latency live performance with better low-frequency tracking:
+    // Optimized for low-latency live performance:
+    // 512 samples at 48 kHz (10.66 ms)
     if (currentSampleRate >= 88200.0)
     {
-        windowSize = 4096;
-        hopSize = 1024;
-        maxSearchOffset = 1024;
+        windowSize = 1024;
+        hopSize = 512;
+        maxSearchOffset = 512;
     }
     else
     {
-        windowSize = 2048;
-        hopSize = 512;
-        maxSearchOffset = 512;
+        windowSize = 512;
+        hopSize = 256;
+        maxSearchOffset = 256;
     }
 }
 
