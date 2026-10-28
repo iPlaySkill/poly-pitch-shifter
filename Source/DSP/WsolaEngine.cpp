@@ -44,26 +44,10 @@ void WsolaEngine::prepare(double sampleRate, size_t maxBlockSize, size_t numChan
 
 void WsolaEngine::updateWindowAndHopSizes()
 {
-    // Адаптация размера окна под коэффициент транспонирования
-    // При понижении строя увеличиваем окно для лучшей фазовой когерентности низких частот
-    if (targetPitchRatio < 0.8) // Понижение более чем на 4 полутона
-    {
-        windowSize = 1024;
-        hopSize = 512;
-        maxSearchOffset = 512;
-    }
-    else if (currentSampleRate >= 88200.0)
-    {
-        windowSize = 1024;
-        hopSize = 512;
-        maxSearchOffset = 512;
-    }
-    else
-    {
-        windowSize = 512;
-        hopSize = 256;
-        maxSearchOffset = 256;
-    }
+    // Fix: 1024 samples at 48 kHz (21.33 ms) for better LF stability
+    windowSize = 1024;
+    hopSize = 512;
+    maxSearchOffset = 512;
 }
 
 void WsolaEngine::reset() noexcept
@@ -94,7 +78,6 @@ void WsolaEngine::setPitchShift(float semitones, float cents) noexcept
 void WsolaEngine::setPitchRatio(double ratio) noexcept
 {
     targetPitchRatio = std::clamp(ratio, 0.4, 2.5);
-    updateWindowAndHopSizes(); // Ensure window sizes match new pitch ratio
     antiAliasingFilter.updateForPitchRatio(targetPitchRatio);
 }
 
