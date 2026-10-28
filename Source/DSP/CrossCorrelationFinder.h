@@ -50,7 +50,7 @@ public:
      */
     CorrelationResult findBestStereoOffset(const float *const *channelReferences,
                                            const float *const *channelSearchBuffers, size_t numChannels,
-                                           size_t windowLength, int maxSearchOffset) noexcept;
+                                           size_t windowLength, int maxSearchOffset, int lastBestOffset) noexcept;
 
     /**
      * Computes the inner product (cross-correlation) between two vectors.

@@ -94,6 +94,7 @@ void WsolaEngine::setPitchShift(float semitones, float cents) noexcept
 void WsolaEngine::setPitchRatio(double ratio) noexcept
 {
     targetPitchRatio = std::clamp(ratio, 0.4, 2.5);
+    updateWindowAndHopSizes(); // Ensure window sizes match new pitch ratio
     antiAliasingFilter.updateForPitchRatio(targetPitchRatio);
 }
 
@@ -169,7 +170,7 @@ void WsolaEngine::processWsolaFrame() noexcept
         }
 
         const auto correlation =
-            correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset);
+            correlationFinder.findBestStereoOffset(refPtrs, searchPtrs, chCount, windowSize, maxSearchOffset, static_cast<int>(lastBestOffset));
         bestDelta = correlation.bestOffset;
         lastCorrelationScore = correlation.peakCorrelation;
     }
